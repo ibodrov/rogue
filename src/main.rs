@@ -3,16 +3,17 @@ extern crate sfml;
 mod ui;
 mod map;
 
+use ui::UIEvent;
 
 struct Game {
-    ui: Box<ui::SFMLUI>,
+    ui: Box<ui::UI>,
     map: map::Map,
 }
 
 impl Game {
     fn new() -> Game {
         Game {
-            ui: Box::new(ui::SFMLUI::new()),
+            ui: Box::new(ui::sfml_ui::SFMLUI::new()),
             map: map::Map::new(128, 128),
         }
     }
@@ -21,28 +22,23 @@ impl Game {
         let ui = &mut self.ui;
 
         while ui.is_open() {
-            loop {
-                use ui::Event;
-
-                let e = ui.poll_event();
+            while let Some(e) = ui.poll_event() {
                 match e {
-                    Event::NoEvent => break,
+                    UIEvent::Closed => return,
 
-                    Event::Closed => return,
-
-                    Event::KeyPressed { code: ui::Key::Down, .. } => {
+                    UIEvent::KeyPressed { code: ui::UIKey::Down, .. } => {
                         println!("down!");
                     },
 
-                    Event::KeyPressed { code: ui::Key::Up, .. } => {
+                    UIEvent::KeyPressed { code: ui::UIKey::Up, .. } => {
                         println!("up!");
                     },
 
-                    Event::KeyPressed { code: ui::Key::Right, .. } => {
+                    UIEvent::KeyPressed { code: ui::UIKey::Right, .. } => {
                         println!("right!");
                     },
 
-                    Event::KeyPressed { code: ui::Key::Left, .. } => {
+                    UIEvent::KeyPressed { code: ui::UIKey::Left, .. } => {
                         println!("left!");
                     },
 
