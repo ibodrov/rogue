@@ -14,7 +14,7 @@ pub enum UIEvent {
     KeyPressed {
         code: UIKey,
     }
-} 
+}
 
 pub trait UI {
     fn is_open(&self) -> bool;

@@ -33,7 +33,8 @@ impl Map {
         self.size
     }
 
-    pub fn data(&self) -> &[u8] {
-        &self.data
+    pub fn get_at(&self, x: u32, y: u32) -> u8 {
+        let n = (x + y * self.size.0) as usize;
+        self.data[n]
     }
 }

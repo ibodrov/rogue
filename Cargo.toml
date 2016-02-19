@@ -5,3 +5,4 @@ authors = ["Ivan Bodrov <ibodrov@jet.msk.su>"]
 
 [dependencies]
 sfml = "*"
+time = "*"
