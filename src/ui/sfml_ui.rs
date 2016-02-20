@@ -28,6 +28,27 @@ impl MapView {
             view: v,
         }
     }
+
+    fn get_view_rect(&self) -> IntRect {
+        let v = &self.view;
+
+        let (view_w, view_h) = vector2f_to_pair(&v.get_size());
+        let (view_x, view_y) = {
+            let (x, y) = vector2f_to_pair(&v.get_center());
+            (x - view_w / 2, y - view_h / 2)
+        };
+
+        IntRect {
+            left: view_x,
+            top: view_y,
+            width: view_w,
+            height: view_h,
+        }
+    }
+
+    fn move_view(&mut self, x: f32, y: f32) {
+        self.view.move2f(x, y);
+    }
 }
 
 pub struct SFMLUI {
@@ -62,16 +83,12 @@ impl UI for SFMLUI {
             Event::NoEvent => None,
             Event::Closed => Some(UIEvent::Closed),
             Event::KeyPressed { code, .. } => {
-                fn view_move(mv: &mut MapView, x: f32, y: f32) {
-                    let v = &mut mv.view;
-                    v.move2f(x, y);
-                }
-
+                let mv = &mut self.map_view;
                 match code {
-                    Key::Down => view_move(&mut self.map_view, 0.0, 5.0),
-                    Key::Up => view_move(&mut self.map_view, 0.0, -5.0),
-                    Key::Left => view_move(&mut self.map_view, -5.0, 0.0),
-                    Key::Right => view_move(&mut self.map_view, 5.0, 0.0),
+                    Key::Down => mv.move_view(0.0, 5.0),
+                    Key::Up => mv.move_view(0.0, -5.0),
+                    Key::Left => mv.move_view(-5.0, 0.0),
+                    Key::Right => mv.move_view(5.0, 0.0),
                     _ => (),
                 }
 
@@ -103,40 +120,26 @@ impl From<Key> for UIKey {
 
 impl Drawable for MapView {
     fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
-        target.set_view(&self.view);
-        target.draw(&self.map);
-    }
-}
-
-impl Drawable for map::Map {
-    fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
         let va = {
-            let m = self;
-
             let tile_w = 16;
             let tile_h = 16;
 
-            let (view_w, view_h) = {
-                let Vector2f { x, y } = target.get_view().get_size();
-                (x as i32, y as i32)
-            };
-            let (view_x, view_y) = {
-                let Vector2f { x, y } = target.get_view().get_center();
-                (x as i32 - view_w / 2, y as i32 - view_h / 2)
-            };
+            let view_rect = self.get_view_rect();
 
-            let view_start_i = view_x / tile_w;
-            let view_start_j = view_y / tile_h;
+            let view_start_i = view_rect.left / tile_w;
+            let view_start_j = view_rect.top / tile_h;
+
+            let m = &self.map;
 
             let (map_w, map_h) = {
                 let (w, h) = m.size();
                 (w as i32, h as i32)
             };
 
-            let view_end_i = ((view_x + view_w) / tile_w) + 1;
-            let view_end_j = ((view_y + view_h) / tile_h) + 1;
+            let view_end_i = ((view_rect.left + view_rect.width) / tile_w) + 1;
+            let view_end_j = ((view_rect.top + view_rect.height) / tile_h) + 1;
 
-            let bounds_check = |i, j| {
+            fn bounds_check(i: i32, j: i32, map_w: i32, map_h: i32) -> bool {
                 i >= 0 && i < map_w && j >= 0 && j < map_h
             };
 
@@ -146,7 +149,7 @@ impl Drawable for map::Map {
 
                 for i in view_start_i..view_end_i {
                     for j in view_start_j..view_end_j {
-                        if bounds_check(i, j) {
+                        if bounds_check(i, j, map_w, map_h) {
                             cnt += 1;
                         }
                     }
@@ -159,7 +162,7 @@ impl Drawable for map::Map {
             let mut vertex_n = 0;
             for i in view_start_i..view_end_i {
                 for j in view_start_j..view_end_j {
-                    if !bounds_check(i, j) {
+                    if !bounds_check(i, j, map_w, map_h) {
                         continue;
                     }
 
@@ -204,6 +207,12 @@ impl Drawable for map::Map {
             va
         };
 
+        target.set_view(&self.view);
         target.draw(&va);
     }
+}
+
+fn vector2f_to_pair(v: &Vector2f) -> (i32, i32) {
+    let Vector2f { x, y } = *v;
+    (x as i32, y as i32)
 }
