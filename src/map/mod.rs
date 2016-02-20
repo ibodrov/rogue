@@ -1,4 +1,7 @@
+extern crate rand;
+
 use std::vec::Vec;
+use self::rand::Rng;
 
 pub struct Map {
     size: (u32, u32),
@@ -21,6 +24,14 @@ impl Map {
         for y in 0..height {
             data[idx(0, y)] = 1;
             data[idx(width - 1, y)] = 1;
+        }
+
+        let mut rng = rand::thread_rng();
+        for x in 1..width - 1 {
+            for y in 1..height - 1 {
+                let n = rng.gen_range(0, 2); // [0, 2)
+                data[idx(x, y)] = n;
+            }
         }
 
         Map {

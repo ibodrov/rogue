@@ -27,23 +27,6 @@ impl Game {
             while let Some(e) = ui.poll_event() {
                 match e {
                     UIEvent::Closed => return,
-
-                    UIEvent::KeyPressed { code: ui::UIKey::Down, .. } => {
-                        println!("down!");
-                    },
-
-                    UIEvent::KeyPressed { code: ui::UIKey::Up, .. } => {
-                        println!("up!");
-                    },
-
-                    UIEvent::KeyPressed { code: ui::UIKey::Right, .. } => {
-                        println!("right!");
-                    },
-
-                    UIEvent::KeyPressed { code: ui::UIKey::Left, .. } => {
-                        println!("left!");
-                    },
-
                     _ => continue,
                 }
             }

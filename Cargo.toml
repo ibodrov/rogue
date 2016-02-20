@@ -3,6 +3,10 @@ name = "rogue"
 version = "0.1.0"
 authors = ["Ivan Bodrov <ibodrov@jet.msk.su>"]
 
+[profile.release]
+debug = true
+
 [dependencies]
 sfml = "*"
 time = "*"
+rand = "*"
