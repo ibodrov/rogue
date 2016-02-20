@@ -70,24 +70,24 @@ impl Drawable for map::Map {
     fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
         let va = {
             let m = self;
-            let Vector2f { x: view_w, y: view_h } = target.get_view().get_size();
+            let (view_w, view_h) = {
+                let Vector2f { x, y } = target.get_view().get_size();
+                (x as u32, y as u32)
+            };
 
             let mut va = VertexArray::new().unwrap();
             va.set_primitive_type(PrimitiveType::sfQuads);
 
-            let tile_w = 16.0;
-            let tile_h = 16.0;
+            let tile_w = 16;
+            let tile_h = 16;
 
             let (map_w, map_h) = m.size();
-            let view_map_w = cmp::min(map_w, (view_w / tile_w) as u32);
-            let view_map_h = cmp::min(map_h, (view_h / tile_h) as u32);
+            let view_map_w = cmp::min(map_w, view_w / tile_w);
+            let view_map_h = cmp::min(map_h, view_h / tile_h);
 
-            for i in 0..view_map_w {
-                for j in 0..view_map_h {
-                    let x = i as f32;
-                    let y = j as f32;
-
-                    let tile = m.get_at(i, j);
+            for x in 0..view_map_w {
+                for y in 0..view_map_h {
+                    let tile = m.get_at(x, y);
                     let color = match tile {
                         0 => Color::black(),
                         1 => Color::red(),
@@ -95,13 +95,19 @@ impl Drawable for map::Map {
                         _ => Color::yellow(),
                     };
 
-                    let (x1, y1) = ( x        * tile_w,  y        * tile_h);
-                    let (x2, y2) = ((x + 1.0) * tile_w,  y        * tile_h);
-                    let (x3, y3) = ((x + 1.0) * tile_w, (y + 1.0) * tile_h);
-                    let (x4, y4) = ( x        * tile_w, (y + 1.0) * tile_h);
+                    // +--------+
+                    // | 1    2 |
+                    // |        |
+                    // | 4    3 |
+                    // +--------+
 
-                    fn append(va: &mut VertexArray, x: f32, y: f32, c: &Color) {
-                        let v = Vertex::new_with_pos_color(&Vector2f::new(x, y), &c);
+                    let (x1, y1) = ( x      * tile_w,  y      * tile_h);
+                    let (x2, y2) = ((x + 1) * tile_w,  y      * tile_h);
+                    let (x3, y3) = ((x + 1) * tile_w, (y + 1) * tile_h);
+                    let (x4, y4) = ( x      * tile_w, (y + 1) * tile_h);
+
+                    fn append(va: &mut VertexArray, x: u32, y: u32, c: &Color) {
+                        let v = Vertex::new_with_pos_color(&Vector2f::new(x as f32, y as f32), &c);
                         va.append(&v);
                     }
 
