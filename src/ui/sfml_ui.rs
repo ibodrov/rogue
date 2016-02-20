@@ -75,15 +75,15 @@ impl Drawable for map::Map {
                 (x as u32, y as u32)
             };
 
-            let mut va = VertexArray::new().unwrap();
-            va.set_primitive_type(PrimitiveType::sfQuads);
-
             let tile_w = 16;
             let tile_h = 16;
 
             let (map_w, map_h) = m.size();
             let view_map_w = cmp::min(map_w, view_w / tile_w);
             let view_map_h = cmp::min(map_h, view_h / tile_h);
+
+            let va_cnt = view_map_w * view_map_h * 4;
+            let mut va = VertexArray::new_init(PrimitiveType::sfQuads, va_cnt).unwrap();
 
             for x in 0..view_map_w {
                 for y in 0..view_map_h {
@@ -106,15 +106,18 @@ impl Drawable for map::Map {
                     let (x3, y3) = ((x + 1) * tile_w, (y + 1) * tile_h);
                     let (x4, y4) = ( x      * tile_w, (y + 1) * tile_h);
 
-                    fn append(va: &mut VertexArray, x: u32, y: u32, c: &Color) {
-                        let v = Vertex::new_with_pos_color(&Vector2f::new(x as f32, y as f32), &c);
-                        va.append(&v);
+                    fn update(va: &VertexArray, n: u32, x: u32, y: u32, c: &Color) {
+                        let mut v = va.get_vertex(n);
+                        v.0.position.x = x as f32;
+                        v.0.position.y = y as f32;
+                        v.0.color = c.0;
                     }
 
-                    append(&mut va, x1, y1, &color);
-                    append(&mut va, x2, y2, &color);
-                    append(&mut va, x3, y3, &color);
-                    append(&mut va, x4, y4, &color);
+                    let n = (x + y * view_map_w) * 4;
+                    update(&mut va, n,     x1, y1, &color);
+                    update(&mut va, n + 1, x2, y2, &color);
+                    update(&mut va, n + 2, x3, y3, &color);
+                    update(&mut va, n + 3, x4, y4, &color);
                 }
             }
 
