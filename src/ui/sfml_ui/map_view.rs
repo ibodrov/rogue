@@ -1,20 +1,18 @@
 extern crate sfml;
 
 use sfml::graphics::*;
-use sfml::window::{ContextSettings, VideoMode, window_style, Key};
-use sfml::window::event::Event;
 use sfml::system::Vector2f;
 
-use ui::{UI, UIEvent, UIKey};
 use map;
+use ui::sfml_ui::utils::vector2f_to_pair;
 
-struct MapView {
+pub struct MapView {
     map: map::Map,
     view: View,
 }
 
 impl MapView {
-    fn new(map: map::Map, view_size: (u32, u32)) -> MapView {
+    pub fn new(map: map::Map, view_size: (u32, u32)) -> MapView {
         let (view_w, view_h) = {
             let (w, h) = view_size;
             (w as f32, h as f32)
@@ -29,7 +27,7 @@ impl MapView {
         }
     }
 
-    fn get_view_rect(&self) -> IntRect {
+    pub fn get_view_rect(&self) -> IntRect {
         let v = &self.view;
 
         let (view_w, view_h) = vector2f_to_pair(&v.get_size());
@@ -46,75 +44,8 @@ impl MapView {
         }
     }
 
-    fn move_view(&mut self, x: f32, y: f32) {
+    pub fn move_view(&mut self, x: f32, y: f32) {
         self.view.move2f(x, y);
-    }
-}
-
-pub struct SFMLUI {
-    window: RenderWindow,
-    map_view: MapView,
-}
-
-impl SFMLUI {
-    pub fn new() -> Self {
-        let s = ContextSettings::default();
-        let w = RenderWindow::new(VideoMode::new_init(1024, 768, 32),
-                                  "rogue",
-                                  window_style::TITLEBAR | window_style::CLOSE,
-                                  &s).unwrap();
-
-        let m = map::Map::new(128, 128);
-
-        SFMLUI {
-            window: w,
-            map_view: MapView::new(m, (1024, 768)),
-        }
-    }
-}
-
-impl UI for SFMLUI {
-    fn is_open(&self) -> bool {
-        self.window.is_open()
-    }
-
-    fn poll_event(&mut self) -> Option<UIEvent> {
-        match self.window.poll_event() {
-            Event::NoEvent => None,
-            Event::Closed => Some(UIEvent::Closed),
-            Event::KeyPressed { code, .. } => {
-                let mv = &mut self.map_view;
-                match code {
-                    Key::Down => mv.move_view(0.0, 5.0),
-                    Key::Up => mv.move_view(0.0, -5.0),
-                    Key::Left => mv.move_view(-5.0, 0.0),
-                    Key::Right => mv.move_view(5.0, 0.0),
-                    _ => (),
-                }
-
-                Some(UIEvent::KeyPressed { code: UIKey::from(code) })
-            },
-            _ => Some(UIEvent::Unknown),
-        }
-    }
-
-    fn display(&mut self) {
-        let w = &mut self.window;
-        w.clear(&Color::black());
-        w.draw(&self.map_view);
-        w.display();
-    }
-}
-
-impl From<Key> for UIKey {
-    fn from(k: Key) -> Self {
-        match k {
-            Key::Up => UIKey::Up,
-            Key::Down => UIKey::Down,
-            Key::Left => UIKey::Left,
-            Key::Right => UIKey::Right,
-            _ => UIKey::Unknown,
-        }
     }
 }
 
@@ -210,9 +141,4 @@ impl Drawable for MapView {
         target.set_view(&self.view);
         target.draw(&va);
     }
-}
-
-fn vector2f_to_pair(v: &Vector2f) -> (i32, i32) {
-    let Vector2f { x, y } = *v;
-    (x as i32, y as i32)
 }
