@@ -5,19 +5,16 @@ use std::cell::RefCell;
 use sfml::graphics::*;
 use sfml::system::Vector2f;
 
-use map;
-use fov;
+use ecs;
 use ui::sfml_ui::utils::vector2f_to_pair;
 
-pub struct MapView {
-    map: Rc<RefCell<map::Map>>,
+pub struct WorldView {
+    world: Rc<RefCell<ecs::World>>,
     view: View,
-    fov_pos: (u32, u32),
-    fov_radius: u32,
 }
 
-impl MapView {
-    pub fn new(map: Rc<RefCell<map::Map>>, view_size: (u32, u32)) -> MapView {
+impl WorldView {
+    pub fn new(world: Rc<RefCell<ecs::World>>, view_size: (u32, u32)) -> Self {
         let (view_w, view_h) = {
             let (w, h) = view_size;
             (w as f32, h as f32)
@@ -26,15 +23,13 @@ impl MapView {
         let v = View::new_init(&Vector2f::new(view_w / 2.0, view_h / 2.0),
                                &Vector2f::new(view_w, view_h)).unwrap();
 
-        MapView {
-            map: map,
+        WorldView {
+            world: world,
             view: v,
-            fov_pos: (10, 10),
-            fov_radius: 8,
         }
     }
 
-    pub fn get_view_rect(&self) -> IntRect {
+    fn get_view_rect(&self) -> IntRect {
         let v = &self.view;
 
         let (view_w, view_h) = vector2f_to_pair(&v.get_size());
@@ -50,62 +45,27 @@ impl MapView {
             height: view_h,
         }
     }
-
-    pub fn move_view(&mut self, dx: f32, dy: f32) {
-        self.view.move2f(dx, dy);
-    }
-
-    pub fn move_fov_pos(&mut self, dx: i32, dy: i32) {
-        let (x, y) = self.fov_pos;
-        let (map_w, map_h) = {
-            let (w, h) = self.map.borrow().size();
-            (w as i32, h as i32)
-        };
-
-        let mut tx = x as i32 + dx;
-        if tx < 0 {
-            tx = 0;
-        }
-        if tx >= map_w {
-            tx = map_w - 1;
-        }
-
-        let mut ty = y as i32 + dy;
-        if ty < 0 {
-            ty = 0;
-        }
-
-        if ty >= map_h {
-            ty = map_h - 1;
-        }
-
-        self.fov_pos = (tx as u32, ty as u32);
-    }
-
-    pub fn change_fov_radius(&mut self, dv: i32) {
-        self.fov_radius = (self.fov_radius as i32 + dv) as u32;
-    }
 }
 
-impl Drawable for MapView {
+impl Drawable for WorldView {
     fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
         let va = {
+            let w = self.world.borrow();
+            let m = w.map();
+            let tiles = w.render();
+
             let tile_w = 12;
             let tile_h = 12;
-
-            let view_rect = self.get_view_rect();
-
-            let view_start_i = view_rect.left / tile_w;
-            let view_start_j = view_rect.top / tile_h;
-
-            let m = self.map.borrow();
-            let fov = fov::FOV::new(&m, self.fov_pos.0, self.fov_pos.1, self.fov_radius);
-            let (fov_pos_x, fov_pos_y) = self.fov_pos;
 
             let (map_w, map_h) = {
                 let (w, h) = m.size();
                 (w as i32, h as i32)
             };
+
+            let view_rect = self.get_view_rect();
+
+            let view_start_i = view_rect.left / tile_w;
+            let view_start_j = view_rect.top / tile_h;
 
             let view_end_i = ((view_rect.left + view_rect.width) / tile_w) + 1;
             let view_end_j = ((view_rect.top + view_rect.height) / tile_h) + 1;
@@ -137,20 +97,24 @@ impl Drawable for MapView {
                         continue;
                     }
 
-                    let tile = m.get_at(i as u32, j as u32);
-                    let opacity = fov.get_at(i as u32, j as u32);
-                    let mut color = match tile {
+                    let n = (i + j * map_w) as usize;
+                    let tile = &tiles[n];
+                    let mut color = match tile.ground {
                         0 => Color::black(),
                         1 => Color::red(),
                         2 => Color::green(),
                         _ => Color::yellow(),
                     };
 
-                    if i as u32 == fov_pos_x && j as u32 == fov_pos_y {
-                        color = Color::blue();
-                    } else {
-                        let light = (64.0 * (1.0 - opacity)) as u8;
-                        color = Color::add(color, Color::new_rgb(light, light, light));
+                    if let Some(ref effects) = tile.effects {
+                        for e in effects {
+                            match e {
+                                &ecs::TileEffect::Lit(lum) => {
+                                    let c = (255.0 * lum) as u8;
+                                    color = Color::add(color, Color::new_rgb(c, c, c));
+                                }
+                            }
+                        }
                     }
 
                     // +--------+

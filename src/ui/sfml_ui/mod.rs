@@ -1,7 +1,7 @@
 extern crate sfml;
 
-mod map_view;
 mod utils;
+mod world_view;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -9,17 +9,17 @@ use sfml::graphics::*;
 use sfml::window::{ContextSettings, VideoMode, window_style, Key};
 use sfml::window::event::Event;
 
-use map;
+use ecs;
 use ui::{UI, UIEvent, UIKey};
-use ui::sfml_ui::map_view::MapView;
+use ui::sfml_ui::world_view::WorldView;
 
 pub struct SFMLUI {
     window: RenderWindow,
-    map_view: MapView,
+    world_view: WorldView,
 }
 
 impl SFMLUI {
-    pub fn new(map: Rc<RefCell<map::Map>>) -> Self {
+    pub fn new(world: Rc<RefCell<ecs::World>>) -> Self {
         let s = ContextSettings::default();
         let w = RenderWindow::new(VideoMode::new_init(1024, 768, 32),
                                   "rogue",
@@ -30,7 +30,7 @@ impl SFMLUI {
 
         SFMLUI {
             window: w,
-            map_view: MapView::new(map, (1024, 768)),
+            world_view: WorldView::new(world, (1024, 768)),
         }
     }
 }
@@ -44,30 +44,7 @@ impl UI for SFMLUI {
         match self.window.poll_event() {
             Event::NoEvent => None,
             Event::Closed => Some(UIEvent::Closed),
-            Event::KeyPressed { code, .. } => {
-                let mv = &mut self.map_view;
-                /*
-                let s = 10.0;
-                match code {
-                    Key::Down => mv.move_view(0.0, s),
-                    Key::Up => mv.move_view(0.0, -s),
-                    Key::Left => mv.move_view(-s, 0.0),
-                    Key::Right => mv.move_view(s, 0.0),
-                    _ => (),
-            }*/
-                match code {
-                    Key::Down => mv.move_fov_pos(0, 1),
-                    Key::Up => mv.move_fov_pos(0, -1),
-                    Key::Left => mv.move_fov_pos(-1, 0),
-                    Key::Right => mv.move_fov_pos(1, 0),
-                    Key::Equal => mv.change_fov_radius(1),
-                    Key::Dash => mv.change_fov_radius(-1),
-                    _ => (),
-                }
-
-
-                Some(UIEvent::KeyPressed { code: UIKey::from(code) })
-            },
+            Event::KeyPressed { code, .. } => Some(UIEvent::KeyPressed { code: UIKey::from(code) }),
             _ => Some(UIEvent::Unknown),
         }
     }
@@ -75,7 +52,7 @@ impl UI for SFMLUI {
     fn display(&mut self) {
         let w = &mut self.window;
         w.clear(&Color::black());
-        w.draw(&self.map_view);
+        w.draw(&self.world_view);
         w.display();
     }
 }

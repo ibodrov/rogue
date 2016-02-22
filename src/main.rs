@@ -1,33 +1,28 @@
 extern crate sfml;
 extern crate time;
-extern crate rand;
 
 mod ui;
-mod map;
 mod circle_iter;
 mod fov;
+mod map;
+mod ecs;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use rand::Rng;
 use ui::{UIEvent, UIKey};
 
-struct World {
-    map: Rc<RefCell<map::Map>>,
-}
-
 struct Game {
-    world: World,
+    world: Rc<RefCell<ecs::World>>,
     ui: Box<ui::UI>,
 }
 
 impl Game {
     fn new() -> Game {
-        let map = Rc::new(RefCell::new(map::Map::new(128, 128)));
+        let w = Rc::new(RefCell::new(ecs::World::new()));
 
         Game {
-            world: World { map: map.clone() },
-            ui: Box::new(ui::sfml_ui::SFMLUI::new(map.clone())),
+            world: w.clone(),
+            ui: Box::new(ui::sfml_ui::SFMLUI::new(w.clone())),
         }
     }
 
@@ -41,13 +36,71 @@ impl Game {
             while let Some(e) = ui.poll_event() {
                 match e {
                     UIEvent::Closed => return,
-                    UIEvent::KeyPressed { code: UIKey::Space } => {
-                        let mut rng = rand::thread_rng();
-                        let mut m = self.world.map.borrow_mut();
-                        let (w, h) = m.size();
-                        let x = rng.gen_range(0, w);
-                        let y = rng.gen_range(0, h);
-                        m.set_at(x, y, 1);
+                    UIEvent::KeyPressed { code } => {
+                        fn move_torch(w: &mut ecs::World, id: ecs::EntityId, dx: i32, dy: i32) {
+                            let (map_w, map_h) = {
+                                let (w, h) = w.map().size();
+                                (w as i32, h as i32)
+                            };
+
+                            w.update(|cs| {
+                                if let Some(pos) = cs.position.get_mut(&id) {
+                                    let (x, y) = {
+                                        let mut x = (pos.x as i32) + dx;
+                                        if x < 0 {
+                                            x = 0;
+                                        }
+
+                                        if x >= map_w {
+                                            x = map_w - 1;
+                                        }
+
+                                        let mut y = (pos.y as i32) + dy;
+                                        if y < 0 {
+                                            y = 0;
+                                        }
+
+                                        if y >= map_h {
+                                            y = map_h - 1;
+                                        }
+
+                                        (x as u32, y as u32)
+                                    };
+
+                                    pos.x = x;
+                                    pos.y = y;
+                                }
+                            });
+                        }
+
+                        match code {
+                            UIKey::Space => {
+                                let mut w = self.world.borrow_mut();
+                                w.map_mut().randomize();
+                            },
+
+                            UIKey::Down => {
+                                let mut w = self.world.borrow_mut();
+                                move_torch(&mut w, ecs::EntityId(0), 0, 1);
+                            },
+
+                            UIKey::Up => {
+                                let mut w = self.world.borrow_mut();
+                                move_torch(&mut w, ecs::EntityId(0), 0, -1);
+                            },
+
+                            UIKey::Left => {
+                                let mut w = self.world.borrow_mut();
+                                move_torch(&mut w, ecs::EntityId(0), -1, 0);
+                            },
+
+                            UIKey::Right => {
+                                let mut w = self.world.borrow_mut();
+                                move_torch(&mut w, ecs::EntityId(0), 1, 0);
+                            },
+
+                            _ => (),
+                        }
                     },
                     _ => continue,
                 }
