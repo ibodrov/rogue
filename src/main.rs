@@ -3,6 +3,8 @@ extern crate time;
 
 mod ui;
 mod map;
+mod circle_iter;
+mod fov;
 
 use ui::UIEvent;
 
