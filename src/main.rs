@@ -1,21 +1,33 @@
 extern crate sfml;
 extern crate time;
+extern crate rand;
 
 mod ui;
 mod map;
 mod circle_iter;
 mod fov;
 
-use ui::UIEvent;
+use std::rc::Rc;
+use std::cell::RefCell;
+use rand::Rng;
+use ui::{UIEvent, UIKey};
+
+struct World {
+    map: Rc<RefCell<map::Map>>,
+}
 
 struct Game {
+    world: World,
     ui: Box<ui::UI>,
 }
 
 impl Game {
     fn new() -> Game {
+        let map = Rc::new(RefCell::new(map::Map::new(128, 128)));
+
         Game {
-            ui: Box::new(ui::sfml_ui::SFMLUI::new()),
+            world: World { map: map.clone() },
+            ui: Box::new(ui::sfml_ui::SFMLUI::new(map.clone())),
         }
     }
 
@@ -29,6 +41,14 @@ impl Game {
             while let Some(e) = ui.poll_event() {
                 match e {
                     UIEvent::Closed => return,
+                    UIEvent::KeyPressed { code: UIKey::Space } => {
+                        let mut rng = rand::thread_rng();
+                        let mut m = self.world.map.borrow_mut();
+                        let (w, h) = m.size();
+                        let x = rng.gen_range(0, w);
+                        let y = rng.gen_range(0, h);
+                        m.set_at(x, y, 1);
+                    },
                     _ => continue,
                 }
             }

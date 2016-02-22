@@ -21,7 +21,7 @@ const CIRCLE_OCTANTS: [(i32, i32, bool); 8] = [
     (-1,  -1, true),
     (-1,  -1, false),
     (-1,   1, true),
-    (-1,   1, false)
+    (-1,   1, false),
 ];
 
 #[derive(Debug)]
@@ -50,7 +50,6 @@ impl CircleIter {
         if self.octant >= CIRCLE_OCTANTS.len() {
             self.octant = 0;
         }
-        println!("ci: next_octant");
     }
 
     pub fn octant(&self) -> usize {

@@ -3,6 +3,8 @@ extern crate sfml;
 mod map_view;
 mod utils;
 
+use std::rc::Rc;
+use std::cell::RefCell;
 use sfml::graphics::*;
 use sfml::window::{ContextSettings, VideoMode, window_style, Key};
 use sfml::window::event::Event;
@@ -17,18 +19,18 @@ pub struct SFMLUI {
 }
 
 impl SFMLUI {
-    pub fn new() -> Self {
+    pub fn new(map: Rc<RefCell<map::Map>>) -> Self {
         let s = ContextSettings::default();
         let w = RenderWindow::new(VideoMode::new_init(1024, 768, 32),
                                   "rogue",
                                   window_style::TITLEBAR | window_style::CLOSE,
                                   &s).unwrap();
 
-        let m = map::Map::new(128, 128);
+        // w.set_vertical_sync_enabled(true);
 
         SFMLUI {
             window: w,
-            map_view: MapView::new(m, (1024, 768)),
+            map_view: MapView::new(map, (1024, 768)),
         }
     }
 }
@@ -74,6 +76,7 @@ impl From<Key> for UIKey {
             Key::Down => UIKey::Down,
             Key::Left => UIKey::Left,
             Key::Right => UIKey::Right,
+            Key::Space => UIKey::Space,
             _ => UIKey::Unknown,
         }
     }

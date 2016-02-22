@@ -1,5 +1,7 @@
 extern crate sfml;
 
+use std::rc::Rc;
+use std::cell::RefCell;
 use sfml::graphics::*;
 use sfml::system::Vector2f;
 
@@ -7,12 +9,12 @@ use map;
 use ui::sfml_ui::utils::vector2f_to_pair;
 
 pub struct MapView {
-    map: map::Map,
+    map: Rc<RefCell<map::Map>>,
     view: View,
 }
 
 impl MapView {
-    pub fn new(map: map::Map, view_size: (u32, u32)) -> MapView {
+    pub fn new(map: Rc<RefCell<map::Map>>, view_size: (u32, u32)) -> MapView {
         let (view_w, view_h) = {
             let (w, h) = view_size;
             (w as f32, h as f32)
@@ -60,7 +62,8 @@ impl Drawable for MapView {
             let view_start_i = view_rect.left / tile_w;
             let view_start_j = view_rect.top / tile_h;
 
-            let m = &self.map;
+            let m = self.map.borrow();
+            let fov = m.fov_at(10, 10, 5);
 
             let (map_w, map_h) = {
                 let (w, h) = m.size();
@@ -98,12 +101,16 @@ impl Drawable for MapView {
                     }
 
                     let tile = m.get_at(i as u32, j as u32);
-                    let color = match tile {
+                    let opacity = fov[(i + j * map_w) as usize];
+                    let mut color = match tile {
                         0 => Color::black(),
                         1 => Color::red(),
                         2 => Color::green(),
                         _ => Color::yellow(),
                     };
+
+                    let light = (255.0 * (1.0 - opacity)) as u8;
+                    color = Color::add(color, Color::new_rgb(light, light, light));
 
                     // +--------+
                     // | 1    2 |

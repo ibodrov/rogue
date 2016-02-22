@@ -6,6 +6,7 @@ pub enum UIKey {
     Down,
     Left,
     Right,
+    Space,
 }
 
 pub enum UIEvent {
