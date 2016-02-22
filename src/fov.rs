@@ -3,9 +3,60 @@
 ///
 
 use std::vec::Vec;
+
+use map;
 use circle_iter::CircleIter;
 
-pub struct RPAPartialShadowcasting<F> {
+pub struct FOV {
+    data: Vec<f32>,
+    map_size: (u32, u32),
+}
+
+impl FOV {
+    pub fn new(map: &map::Map, start_x: u32, start_y: u32, r: u32) -> FOV {
+        FOV {
+            data: FOV::calculate(map, start_x, start_y, r),
+            map_size: map.size(),
+        }
+    }
+
+    fn calculate(map: &map::Map, start_x: u32, start_y: u32, r: u32) -> Vec<f32> {
+        let (map_w, map_h) = map.size();
+
+        let check = |x: i32, y: i32| {
+            let map_x = start_x + x as u32;
+            let map_y = start_y + y  as u32;
+            if map_x >= map_w || map_y >= map_h {
+                return 1.0;
+            }
+
+            if map.get_at(map_x, map_y) == 1 { 1.0 } else { 0.0 }
+        };
+
+        let mut result = (0..map_w * map_h).map(|_| 1.0).collect::<Vec<f32>>();
+
+        let max_n = (map_w * map_h) as usize;
+        let it = RPAPartialShadowcasting::new(r as i32, check);
+        for (x, y, o) in it {
+            let n = ((start_x + x as u32) + (start_y + y as u32) * map_w) as usize;
+            if n >= max_n {
+                continue;
+            }
+            result[n] = o;
+        }
+
+        result
+    }
+
+    pub fn get_at(&self, x: u32, y: u32) -> f32 {
+        let n = (x + y * self.map_size.0) as usize;
+        self.data[n]
+    }
+}
+
+/// Restrictive Precise Angle Shadowcasting
+
+struct RPAPartialShadowcasting<F> {
     check_fn: F,
     iter: CircleIter,
     last_octant: usize,
@@ -14,7 +65,7 @@ pub struct RPAPartialShadowcasting<F> {
 
 impl<F> RPAPartialShadowcasting<F> where F: FnMut(i32, i32) -> f32 {
 
-    pub fn new(radius: i32, check_fn: F) -> Self {
+    fn new(radius: i32, check_fn: F) -> Self {
         RPAPartialShadowcasting {
             check_fn: check_fn,
             iter: CircleIter::new(radius),

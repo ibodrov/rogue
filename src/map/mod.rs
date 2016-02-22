@@ -2,7 +2,6 @@ extern crate rand;
 
 use std::vec::Vec;
 use rand::Rng;
-use fov::RPAPartialShadowcasting;
 
 pub struct Map {
     size: (u32, u32),
@@ -31,8 +30,10 @@ impl Map {
         let mut rng = rand::thread_rng();
         for x in 1..width - 1 {
             for y in 1..height - 1 {
-                let n = rng.gen_range(0, 2); // [0, 2)
-                data[idx(x, y)] = n;
+                let n = rng.gen_range(0, 100); // [0, 5)
+                if n < 15 {
+                    data[idx(x, y)] = 1;
+                }
             }
         }
 
@@ -54,28 +55,5 @@ impl Map {
     pub fn set_at(&mut self, x: u32, y: u32, t: u8) {
         let n = (x + y * self.size.0) as usize;
         self.data[n] = t;
-    }
-
-    pub fn fov_at(&self, start_x: u32, start_y: u32, r: u32) -> Vec<f32> {
-        let idx = |i: i32, j: i32| ((start_x as i32 + i) + (start_y as i32 + j) * self.size.0 as i32) as usize;
-
-        let check = |x: i32, y: i32| {
-            let n = idx(x, y);
-            if n >= self.data.len() {
-                return 1.0;
-            }
-
-            if self.data[n] == 1 { 1.0 } else { 0.0 }
-        };
-
-        let mut result = self.data.iter().map(|_| 1.0).collect::<Vec<f32>>();
-
-        let it = RPAPartialShadowcasting::new(r as i32, check);
-        for (x, y, o) in it {
-            let n = idx(x, y);
-            result[n] = o;
-        }
-
-        result
     }
 }

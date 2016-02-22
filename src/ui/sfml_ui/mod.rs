@@ -46,6 +46,7 @@ impl UI for SFMLUI {
             Event::Closed => Some(UIEvent::Closed),
             Event::KeyPressed { code, .. } => {
                 let mv = &mut self.map_view;
+                /*
                 let s = 10.0;
                 match code {
                     Key::Down => mv.move_view(0.0, s),
@@ -53,7 +54,17 @@ impl UI for SFMLUI {
                     Key::Left => mv.move_view(-s, 0.0),
                     Key::Right => mv.move_view(s, 0.0),
                     _ => (),
+            }*/
+                match code {
+                    Key::Down => mv.move_fov_pos(0, 1),
+                    Key::Up => mv.move_fov_pos(0, -1),
+                    Key::Left => mv.move_fov_pos(-1, 0),
+                    Key::Right => mv.move_fov_pos(1, 0),
+                    Key::Equal => mv.change_fov_radius(1),
+                    Key::Dash => mv.change_fov_radius(-1),
+                    _ => (),
                 }
+
 
                 Some(UIEvent::KeyPressed { code: UIKey::from(code) })
             },
