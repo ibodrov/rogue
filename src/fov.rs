@@ -126,6 +126,7 @@ impl<F> Iterator for RPAPartialShadowcasting<F> where F: FnMut(i32, i32) -> f32 
         if opc_here > 0.0 {
             self.obstructions.push((near, far, opc_here));
         }
+
         opacity = opacity.min(1.0);
 
         Some((a, b, opacity))
@@ -139,19 +140,19 @@ fn test_iter() {
 
     let idx = |x: i32, y: i32| (x + y * 16) as usize;
 
-    let base_x = w / 2;
-    let base_y = h / 2;
+    let base_x = w / 2 - 1;
+    let base_y = h / 2 - 1;
 
     let data: Vec<u8> = vec![
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-        0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 1,10, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -161,27 +162,26 @@ fn test_iter() {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
     assert_eq!(data.len(), (w * h) as usize);
-    let mut result = data.clone();
+    let mut result = Vec::with_capacity((w * h) as usize);
+    result.resize((w * h) as usize, 1.0);
 
     let it = RPAPartialShadowcasting::new(5, |x, y| {
         let n = idx(base_x + x, base_y + y);
         let t = data[n];
-        if t == 0 { 0.0 } else { 1.0 }
+        t as f32 * 0.1
     });
 
     for (x, y, o) in it {
         let n = idx(base_x + x, base_y + y);
-        if o < 1.0 {
-            result[n] = 2;
-        } else {
-            result[n] = 0;
-        }
+        result[n] = o;
     }
 
     for y in 0..h {
         for x in 0..w {
             let n = idx(x, y);
-            print!("{}", result[n]);
+            let v = result[n];
+            let c = if v <= 0.0 { ' ' } else if v <= 0.1 { '.' } else if v <= 0.5 { '*' } else if v <= 0.75 { '%' } else if v <= 1.0 { '#' } else { '0' };
+            print!("{}", c);
         }
         println!("");
     }
