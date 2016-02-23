@@ -24,8 +24,8 @@ impl World {
 
         fn add_torch(w: &mut World, id: u64, x: u32, y: u32, lum: f32) {
             w.create_entity(EntityId(id), |id, cs| {
-                cs.positions.insert(id, components::Position { x: x, y: y });
-                cs.luminocity.insert(id, components::Luminocity(lum));
+                cs.position.insert(id, components::Position { x: x, y: y });
+                cs.glow.insert(id, components::Glow::new(lum));
             });
         };
 

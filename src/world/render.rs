@@ -122,8 +122,8 @@ impl Renderable for world::World {
         // render entities
         let cs = &self.components;
         for e in &self.entities {
-            if let Some(&components::Position { x, y }) = cs.positions.get(e) {
-                if let Some(&components::Luminocity(lum)) = cs.luminocity.get(e) {
+            if let Some(&components::Position { x, y }) = cs.position.get(e) {
+                if let Some(&components::Glow { strength, .. }) = cs.glow.get(e) {
                     // we got a torch
 
                     // TODO radius?
@@ -138,7 +138,7 @@ impl Renderable for world::World {
                         }
                     };
 
-                    illum(&mut tiles, &n_view, x, y, lum);
+                    illum(&mut tiles, &n_view, x, y, strength);
 
                     let fov = fov::FOV::new(&self.map, x, y, 0, radius);
                     for j in 0..map_h {
@@ -157,7 +157,7 @@ impl Renderable for world::World {
                                 }
 
                                 let coeff = fade(x, y, i, j, radius);
-                                let lum = lum * (1.0 - o) * coeff;
+                                let lum = strength * (1.0 - o) * coeff;
                                 illum(&mut tiles, &n_view, i, j, lum);
                             }
                         }
