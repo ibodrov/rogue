@@ -2,57 +2,72 @@ pub mod map;
 pub mod components;
 pub mod tile;
 pub mod render;
+mod systems;
 
 use std::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityId(pub u64);
 
+pub struct WorldData {
+    pub map: map::Map<u8>,
+    pub entities: Vec<EntityId>,
+    pub components: components::Components,
+}
+
 pub struct World {
-    map: map::Map<u8>,
-    entities: Vec<EntityId>,
-    components: components::Components,
+    data: WorldData,
+    systems: Vec<Box<systems::System>>,
 }
 
 impl World {
     pub fn new() -> Self {
         let mut w = World {
-            map: map::Map::new(128, 128, 0),
-            entities: Vec::new(),
-            components: components::Components::new(),
+            data: WorldData {
+                map: map::Map::new(128, 128, 0),
+                entities: Vec::new(),
+                components: components::Components::new(),
+            },
+            systems: vec![Box::new(systems::LightingSystem)],
         };
 
-        fn add_torch(w: &mut World, id: u64, x: u32, y: u32, lum: f32) {
+        fn add_torch(w: &mut World, id: u64, x: u32, y: u32, radius: u32) {
             w.create_entity(EntityId(id), |id, cs| {
                 cs.position.insert(id, components::Position { x: x, y: y });
-                cs.glow.insert(id, components::Glow::new(lum));
+                cs.glow.insert(id, components::Glow::new(radius));
             });
         };
 
-        add_torch(&mut w, 0, 10, 10, 1.0);
-        add_torch(&mut w, 1, 15, 15, 1.0);
-        add_torch(&mut w, 2, 50, 50, 1.0);
-        add_torch(&mut w, 3, 85, 64, 1.0);
+        add_torch(&mut w, 0, 10, 10, 10);
+        add_torch(&mut w, 1, 15, 15, 10);
+        add_torch(&mut w, 2, 50, 50, 10);
+        add_torch(&mut w, 3, 85, 64, 10);
 
         w
     }
 
-    pub fn map(&self) -> &map::Map<u8> {
-        &self.map
+    pub fn data(&self) -> &WorldData {
+        &self.data
     }
 
-    pub fn map_mut(&mut self) -> &mut map::Map<u8> {
-        &mut self.map
+    pub fn data_mut(&mut self) -> &mut WorldData {
+        &mut self.data
     }
 
     pub fn create_entity<F>(&mut self, id: EntityId, builder: F)
         where F: Fn(EntityId, &mut components::Components) {
 
-        builder(id, &mut self.components);
-        self.entities.push(id);
+        builder(id, &mut self.data_mut().components);
+        self.data.entities.push(id);
     }
 
     pub fn update<F>(&mut self, f: F) where F: Fn(&mut components::Components) {
-        f(&mut self.components);
+        f(&mut self.data_mut().components);
+    }
+
+    pub fn tick(&mut self) {
+        for s in self.systems.iter_mut() {
+            s.update(&mut self.data);
+        }
     }
 }

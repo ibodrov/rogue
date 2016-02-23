@@ -9,14 +9,16 @@ pub struct Position {
 }
 
 pub struct Glow {
-    pub strength: f32,
+    pub radius: u32,
+    pub light_map_size: (u32, u32),
     pub light_map: Vec<(i32, i32, f32)>,
 }
 
 impl Glow {
-    pub fn new(strength: f32) -> Self {
+    pub fn new(radius: u32) -> Self {
         Glow {
-            strength: strength,
+            radius: radius,
+            light_map_size: (0, 0),
             light_map: Vec::new(),
         }
     }

@@ -108,26 +108,25 @@ impl Renderable for world::World {
         let map_start_j = cmp::max(view.y, 0) as u32;
         let map_end_j = map_start_j + view_h;
 
+        let map = &self.data().map;
+
         // convert map's data into tiles
         for j in map_start_j..map_end_j {
             for i in map_start_i..map_end_i {
-                let g = self.map.get_at(i, j, view_level);
+                let g = map.get_at(i, j, view_level);
                 let t = tile::Tile::new(*g);
                 tiles.push(t);
             }
         }
 
-        let (map_w, map_h, _) = self.map.size();
+        let (map_w, map_h, _) = map.size();
 
         // render entities
-        let cs = &self.components;
-        for e in &self.entities {
+        let cs = &self.data().components;
+        for e in &self.data().entities {
             if let Some(&components::Position { x, y }) = cs.position.get(e) {
-                if let Some(&components::Glow { strength, .. }) = cs.glow.get(e) {
+                if let Some(&components::Glow { radius, .. }) = cs.glow.get(e) {
                     // we got a torch
-
-                    // TODO radius?
-                    let radius = 10;
 
                     // TODO check if the torch or his glow are visible
 
@@ -138,9 +137,9 @@ impl Renderable for world::World {
                         }
                     };
 
-                    illum(&mut tiles, &n_view, x, y, strength);
+                    illum(&mut tiles, &n_view, x, y, 1.0);
 
-                    let fov = fov::FOV::new(&self.map, x, y, 0, radius);
+                    let fov = fov::FOV::new(map, x, y, 0, radius);
                     for j in 0..map_h {
                         for i in 0..map_w {
                             if i == x && j == y {
@@ -157,7 +156,7 @@ impl Renderable for world::World {
                                 }
 
                                 let coeff = fade(x, y, i, j, radius);
-                                let lum = strength * (1.0 - o) * coeff;
+                                let lum = 1.0 * (1.0 - o) * coeff;
                                 illum(&mut tiles, &n_view, i, j, lum);
                             }
                         }
