@@ -1,14 +1,16 @@
+extern crate sfml;
+
 use std::rc::Rc;
 use std::cell::RefCell;
-use sfml::graphics;
-use sfml::graphics::{Drawable, RenderTarget, RenderStates, VertexArray, PrimitiveType, Color};
-use sfml::system::Vector2f;
+use self::sfml::graphics;
+use self::sfml::graphics::{Drawable, RenderTarget, RenderStates, VertexArray, PrimitiveType, Color};
+use self::sfml::system::Vector2f;
 
 use world;
 use world::tile;
 use world::render;
 use world::render::Renderable;
-use ui::sfml_ui::utils::vector2f_to_pair_i32;
+use ui::utils::vector2f_to_pair_i32;
 
 const TILE_W: u32 = 12;
 const TILE_H: u32 = 12;

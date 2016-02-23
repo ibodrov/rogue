@@ -1,4 +1,3 @@
-extern crate sfml;
 extern crate time;
 
 mod ui;
@@ -8,11 +7,10 @@ mod world;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use ui::{UIEvent, UIKey};
 
 struct Game {
     world: Rc<RefCell<world::World>>,
-    ui: Box<ui::UI>,
+    ui: ui::SFMLUI,
 }
 
 impl Game {
@@ -21,7 +19,7 @@ impl Game {
 
         Game {
             world: w.clone(),
-            ui: Box::new(ui::sfml_ui::SFMLUI::new(w.clone())),
+            ui: ui::SFMLUI::new(w.clone()),
         }
     }
 
@@ -32,10 +30,11 @@ impl Game {
         let mut t0 = time::precise_time_s();
 
         while ui.is_open() {
-            while let Some(e) = ui.poll_event() {
-                match e {
-                    UIEvent::Closed => return,
-                    UIEvent::KeyPressed { code } => {
+            loop {
+                match ui.poll_event() {
+                    ui::Event::NoEvent => break,
+                    ui::Event::Closed => return,
+                    ui::Event::KeyPressed { code, .. } => {
                         fn move_torch(w: &mut world::World, id: world::EntityId, dx: i32, dy: i32) {
                             let (map_w, map_h) = {
                                 let (w, h, _) = w.map().size();
@@ -73,27 +72,27 @@ impl Game {
                         }
 
                         match code {
-                            UIKey::Space => {
+                            ui::Key::Space => {
                                 let mut w = self.world.borrow_mut();
                                 w.map_mut().randomize(1, 0);
                             },
 
-                            UIKey::Down => {
+                            ui::Key::Down => {
                                 let mut w = self.world.borrow_mut();
                                 move_torch(&mut w, world::EntityId(0), 0, 1);
                             },
 
-                            UIKey::Up => {
+                            ui::Key::Up => {
                                 let mut w = self.world.borrow_mut();
                                 move_torch(&mut w, world::EntityId(0), 0, -1);
                             },
 
-                            UIKey::Left => {
+                            ui::Key::Left => {
                                 let mut w = self.world.borrow_mut();
                                 move_torch(&mut w, world::EntityId(0), -1, 0);
                             },
 
-                            UIKey::Right => {
+                            ui::Key::Right => {
                                 let mut w = self.world.borrow_mut();
                                 move_torch(&mut w, world::EntityId(0), 1, 0);
                             },
