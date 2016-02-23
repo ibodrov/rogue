@@ -16,6 +16,16 @@ impl Tile {
             effects: None,
         }
     }
+
+    pub fn add_effect(&mut self, e: Effect) {
+        if let None = self.effects {
+            self.effects = Some(Vec::new());
+        }
+
+        if let Some(ref mut v) = self.effects {
+            v.push(e);
+        }
+    }
 }
 
 pub struct TilesIter<'a> {

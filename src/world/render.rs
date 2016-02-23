@@ -1,8 +1,10 @@
 use std::vec::Vec;
 use std::cmp;
 
+use fov;
 use world;
 use world::tile;
+use world::components;
 
 // The "window" to the map, described in absolute coordinates.
 #[derive(Debug, Clone, Copy)]
@@ -36,7 +38,7 @@ impl View {
 
 // Normalized "window" to the map.
 #[derive(Debug, Clone, Copy)]
-struct NormalizedView {
+pub struct NormalizedView {
     x: u32,
     y: u32,
     level: u32,
@@ -70,6 +72,17 @@ impl RenderedWorldView {
         let v = &self.normalized_view;
         tile::TilesIter::new(v.width, self.tiles.iter())
     }
+
+    pub fn get_abs_mut<'a>(tiles: &'a mut Vec<tile::Tile>, v: &NormalizedView, x: u32, y: u32, level: u32) -> Option<&'a mut tile::Tile> {
+        if x < v.x || x >= v.x + v.width || y < v.y || y >= v.y + v.height {
+            return None;
+        }
+
+        let (nx, ny) = (x - v.x, y - v.y);
+        let n = (nx + ny * v.width + level * v.width * v.height) as usize;
+
+        Some(&mut tiles[n])
+    }
 }
 
 pub trait Renderable {
@@ -101,6 +114,55 @@ impl Renderable for world::World {
                 let g = self.map.get_at(i, j, view_level);
                 let t = tile::Tile::new(*g);
                 tiles.push(t);
+            }
+        }
+
+        let (map_w, map_h, _) = self.map.size();
+
+        // render entities
+        let cs = &self.components;
+        for e in &self.entities {
+            if let Some(&components::Position { x, y }) = cs.positions.get(e) {
+                if let Some(&components::Luminocity(lum)) = cs.luminocity.get(e) {
+                    // we got a torch
+
+                    // TODO radius?
+                    let radius = 10;
+
+                    // TODO check if the torch or his glow are visible
+
+                    let illum = |ts: &mut Vec<tile::Tile>, v: &NormalizedView, x: u32, y: u32, lum: f32| {
+                        // TODO level?
+                        if let Some(t) = RenderedWorldView::get_abs_mut(ts, v, x, y, 0) {
+                            t.add_effect(tile::Effect::Lit(lum));
+                        }
+                    };
+
+                    illum(&mut tiles, &n_view, x, y, lum);
+
+                    let fov = fov::FOV::new(&self.map, x, y, 0, radius);
+                    for j in 0..map_h {
+                        for i in 0..map_w {
+                            if i == x && j == y {
+                                continue;
+                            }
+
+                            let o = fov.get_at(i, j);
+                            if o < 1.0 {
+                                fn fade(x1: u32, y1: u32, x2: u32, y2: u32, _r: u32) -> f32 {
+                                    let (x1, y1) = (x1 as i32, y1 as i32);
+                                    let (x2, y2) = (x2 as i32, y2 as i32);
+                                    let dt = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32;
+                                    1.0 / (1.0 + dt.sqrt())
+                                }
+
+                                let coeff = fade(x, y, i, j, radius);
+                                let lum = lum * (1.0 - o) * coeff;
+                                illum(&mut tiles, &n_view, i, j, lum);
+                            }
+                        }
+                    }
+                }
             }
         }
 
