@@ -1,7 +1,7 @@
 extern crate sfml;
 
 mod utils;
-mod world_view;
+mod world_ui;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -9,17 +9,16 @@ use sfml::graphics::*;
 use sfml::window::{ContextSettings, VideoMode, window_style, Key};
 use sfml::window::event::Event;
 
-use ecs;
+use world;
 use ui::{UI, UIEvent, UIKey};
-use ui::sfml_ui::world_view::WorldView;
 
 pub struct SFMLUI {
     window: RenderWindow,
-    world_view: WorldView,
+    world_ui: world_ui::WorldUI,
 }
 
 impl SFMLUI {
-    pub fn new(world: Rc<RefCell<ecs::World>>) -> Self {
+    pub fn new(world: Rc<RefCell<world::World>>) -> Self {
         let s = ContextSettings::default();
         let w = RenderWindow::new(VideoMode::new_init(1024, 768, 32),
                                   "rogue",
@@ -30,7 +29,7 @@ impl SFMLUI {
 
         SFMLUI {
             window: w,
-            world_view: WorldView::new(world, (1024, 768)),
+            world_ui: world_ui::WorldUI::new(world),
         }
     }
 }
@@ -52,7 +51,7 @@ impl UI for SFMLUI {
     fn display(&mut self) {
         let w = &mut self.window;
         w.clear(&Color::black());
-        w.draw(&self.world_view);
+        w.draw(&self.world_ui);
         w.display();
     }
 }

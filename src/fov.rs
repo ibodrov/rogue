@@ -4,24 +4,24 @@
 
 use std::vec::Vec;
 
-use map;
+use world::map;
 use circle_iter::CircleIter;
 
 pub struct FOV {
     data: Vec<f32>,
-    map_size: (u32, u32),
+    map_size: (u32, u32, u32),
 }
 
 impl FOV {
-    pub fn new(map: &map::Map, start_x: u32, start_y: u32, r: u32) -> Self {
+    pub fn new(map: &map::Map<u8>, start_x: u32, start_y: u32, start_level: u32, r: u32) -> Self {
         FOV {
-            data: FOV::calculate(map, start_x, start_y, r),
+            data: FOV::calculate(map, start_x, start_y, start_level, r),
             map_size: map.size(),
         }
     }
 
-    fn calculate(map: &map::Map, start_x: u32, start_y: u32, r: u32) -> Vec<f32> {
-        let (map_w, map_h) = map.size();
+    fn calculate(map: &map::Map<u8>, start_x: u32, start_y: u32, start_level: u32, r: u32) -> Vec<f32> {
+        let (map_w, map_h, _) = map.size();
 
         let check = |x: i32, y: i32| {
             const WALL: f32 = 1.0;
@@ -33,7 +33,7 @@ impl FOV {
                 return WALL;
             }
 
-            if map.get_at(map_x, map_y) == 1 { WALL } else { NOTHING }
+            if *map.get_at(map_x, map_y, start_level) == 1 { WALL } else { NOTHING }
         };
 
         let mut result = (0..map_w * map_h).map(|_| 1.0).collect::<Vec<f32>>();

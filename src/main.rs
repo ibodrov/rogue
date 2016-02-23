@@ -4,21 +4,20 @@ extern crate time;
 mod ui;
 mod circle_iter;
 mod fov;
-mod map;
-mod ecs;
+mod world;
 
 use std::rc::Rc;
 use std::cell::RefCell;
 use ui::{UIEvent, UIKey};
 
 struct Game {
-    world: Rc<RefCell<ecs::World>>,
+    world: Rc<RefCell<world::World>>,
     ui: Box<ui::UI>,
 }
 
 impl Game {
     fn new() -> Game {
-        let w = Rc::new(RefCell::new(ecs::World::new()));
+        let w = Rc::new(RefCell::new(world::World::new()));
 
         Game {
             world: w.clone(),
@@ -37,12 +36,13 @@ impl Game {
                 match e {
                     UIEvent::Closed => return,
                     UIEvent::KeyPressed { code } => {
-                        fn move_torch(w: &mut ecs::World, id: ecs::EntityId, dx: i32, dy: i32) {
+                        fn move_torch(w: &mut world::World, id: world::EntityId, dx: i32, dy: i32) {
                             let (map_w, map_h) = {
-                                let (w, h) = w.map().size();
+                                let (w, h, _) = w.map().size();
                                 (w as i32, h as i32)
                             };
 
+                            /*
                             w.update(|cs| {
                                 if let Some(pos) = cs.position.get_mut(&id) {
                                     let (x, y) = {
@@ -71,32 +71,33 @@ impl Game {
                                     pos.y = y;
                                 }
                             });
+                            */
                         }
 
                         match code {
                             UIKey::Space => {
                                 let mut w = self.world.borrow_mut();
-                                w.map_mut().randomize();
+                                w.map_mut().randomize(1, 0);
                             },
 
                             UIKey::Down => {
                                 let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, ecs::EntityId(0), 0, 1);
+                                move_torch(&mut w, world::EntityId(0), 0, 1);
                             },
 
                             UIKey::Up => {
                                 let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, ecs::EntityId(0), 0, -1);
+                                move_torch(&mut w, world::EntityId(0), 0, -1);
                             },
 
                             UIKey::Left => {
                                 let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, ecs::EntityId(0), -1, 0);
+                                move_torch(&mut w, world::EntityId(0), -1, 0);
                             },
 
                             UIKey::Right => {
                                 let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, ecs::EntityId(0), 1, 0);
+                                move_torch(&mut w, world::EntityId(0), 1, 0);
                             },
 
                             _ => (),
