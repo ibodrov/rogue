@@ -116,6 +116,8 @@ impl World {
                     // we got a torch
 
                     fn fade(x1: u32, y1: u32, x2: u32, y2: u32, _r: u32) -> f32 {
+                        let (x1, y1) = (x1 as i32, y1 as i32);
+                        let (x2, y2) = (x2 as i32, y2 as i32);
                         let dt = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32;
                         1.0 / (1.0 + dt.sqrt())
                     }

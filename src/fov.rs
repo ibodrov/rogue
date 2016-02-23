@@ -13,7 +13,7 @@ pub struct FOV {
 }
 
 impl FOV {
-    pub fn new(map: &map::Map, start_x: u32, start_y: u32, r: u32) -> FOV {
+    pub fn new(map: &map::Map, start_x: u32, start_y: u32, r: u32) -> Self {
         FOV {
             data: FOV::calculate(map, start_x, start_y, r),
             map_size: map.size(),
@@ -24,13 +24,16 @@ impl FOV {
         let (map_w, map_h) = map.size();
 
         let check = |x: i32, y: i32| {
-            let map_x = start_x + x as u32;
-            let map_y = start_y + y  as u32;
+            const WALL: f32 = 1.0;
+            const NOTHING: f32 = 0.0;
+
+            let map_x = ((start_x as i32) + x) as u32;
+            let map_y = ((start_y as i32) + y) as u32;
             if map_x >= map_w || map_y >= map_h {
-                return 1.0;
+                return WALL;
             }
 
-            if map.get_at(map_x, map_y) == 1 { 1.0 } else { 0.0 }
+            if map.get_at(map_x, map_y) == 1 { WALL } else { NOTHING }
         };
 
         let mut result = (0..map_w * map_h).map(|_| 1.0).collect::<Vec<f32>>();
@@ -38,7 +41,7 @@ impl FOV {
         let max_n = (map_w * map_h) as usize;
         let it = RPAPartialShadowcasting::new(r as i32, check);
         for (x, y, o) in it {
-            let n = ((start_x + x as u32) + (start_y + y as u32) * map_w) as usize;
+            let n = ((start_x as i32 + x) + (start_y as i32 + y) * map_w as i32) as usize;
             if n >= max_n {
                 continue;
             }
