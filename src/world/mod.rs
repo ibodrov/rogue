@@ -39,9 +39,6 @@ impl World {
         };
 
         add_torch(&mut w, 0, 10, 10, 10);
-        add_torch(&mut w, 1, 15, 15, 10);
-        add_torch(&mut w, 2, 50, 50, 10);
-        add_torch(&mut w, 3, 85, 64, 10);
 
         w
     }

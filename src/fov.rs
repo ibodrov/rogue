@@ -7,54 +7,23 @@ use std::vec::Vec;
 use world::map;
 use circle_iter::CircleIter;
 
-pub struct FOV {
-    data: Vec<f32>,
-    map_size: (u32, u32, u32),
-}
+pub fn iter(map: &map::Map<u8>, start_x: u32, start_y: u32, start_level: u32, r: u32) -> Vec<(i32, i32, f32)> {
+    let (map_w, map_h, _) = map.size();
 
-impl FOV {
-    pub fn new(map: &map::Map<u8>, start_x: u32, start_y: u32, start_level: u32, r: u32) -> Self {
-        FOV {
-            data: FOV::calculate(map, start_x, start_y, start_level, r),
-            map_size: map.size(),
-        }
-    }
+    let check = |x: i32, y: i32| {
+        const WALL: f32 = 1.0;
+        const NOTHING: f32 = 0.0;
 
-    fn calculate(map: &map::Map<u8>, start_x: u32, start_y: u32, start_level: u32, r: u32) -> Vec<f32> {
-        let (map_w, map_h, _) = map.size();
-
-        let check = |x: i32, y: i32| {
-            const WALL: f32 = 1.0;
-            const NOTHING: f32 = 0.0;
-
-            let map_x = ((start_x as i32) + x) as u32;
-            let map_y = ((start_y as i32) + y) as u32;
-            if map_x >= map_w || map_y >= map_h {
-                return WALL;
-            }
-
-            if *map.get_at(map_x, map_y, start_level) == 1 { WALL } else { NOTHING }
-        };
-
-        let mut result = (0..map_w * map_h).map(|_| 1.0).collect::<Vec<f32>>();
-
-        let max_n = (map_w * map_h) as usize;
-        let it = RPAPartialShadowcasting::new(r as i32, check);
-        for (x, y, o) in it {
-            let n = ((start_x as i32 + x) + (start_y as i32 + y) * map_w as i32) as usize;
-            if n >= max_n {
-                continue;
-            }
-            result[n] = o;
+        let map_x = ((start_x as i32) + x) as u32;
+        let map_y = ((start_y as i32) + y) as u32;
+        if map_x >= map_w || map_y >= map_h {
+            return WALL;
         }
 
-        result
-    }
+        if *map.get_at(map_x, map_y, start_level) == 1 { WALL } else { NOTHING }
+    };
 
-    pub fn get_at(&self, x: u32, y: u32) -> f32 {
-        let n = (x + y * self.map_size.0) as usize;
-        self.data[n]
-    }
+    RPAPartialShadowcasting::new(r as i32, check).collect()
 }
 
 /// Restrictive Precise Angle Shadowcasting
@@ -67,7 +36,6 @@ struct RPAPartialShadowcasting<F> {
 }
 
 impl<F> RPAPartialShadowcasting<F> where F: FnMut(i32, i32) -> f32 {
-
     fn new(radius: i32, check_fn: F) -> Self {
         RPAPartialShadowcasting {
             check_fn: check_fn,

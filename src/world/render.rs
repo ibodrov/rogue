@@ -1,7 +1,6 @@
 use std::vec::Vec;
 use std::cmp;
 
-use fov;
 use world;
 use world::tile;
 use world::components;
@@ -30,9 +29,7 @@ impl View {
     fn normalize(&self) -> NormalizedView {
         let x = cmp::max(self.x, 0) as u32;
         let y = cmp::max(self.y, 0) as u32;
-        let w = self.width - self.x.abs() as u32;
-        let h = self.height - self.y.abs() as u32;
-        NormalizedView::new(x, y, self.level, w, h)
+        NormalizedView::new(x, y, self.level, self.width, self.height)
     }
 }
 
@@ -59,7 +56,7 @@ impl NormalizedView {
 }
 
 pub struct RenderedWorldView {
-    normalized_view: NormalizedView,
+    size: (u32, u32),
     tiles: Vec<tile::Tile>,
 }
 
@@ -69,17 +66,17 @@ impl RenderedWorldView {
     }
 
     pub fn iter(&self) -> tile::TilesIter {
-        let v = &self.normalized_view;
-        tile::TilesIter::new(v.width, self.tiles.iter())
+        tile::TilesIter::new(self.size.0, self.tiles.iter())
     }
 
-    pub fn get_abs_mut<'a>(tiles: &'a mut Vec<tile::Tile>, v: &NormalizedView, x: u32, y: u32, level: u32) -> Option<&'a mut tile::Tile> {
-        if x < v.x || x >= v.x + v.width || y < v.y || y >= v.y + v.height {
+    pub fn get_abs_mut<'a>(tiles: &'a mut Vec<tile::Tile>, size: (u32, u32), v: &NormalizedView, x: u32, y: u32, level: u32) -> Option<&'a mut tile::Tile> {
+        let (w, h) = size;
+        if x < v.x || x >= v.x + w || y < v.y || y >= v.y + h {
             return None;
         }
 
         let (nx, ny) = (x - v.x, y - v.y);
-        let n = (nx + ny * v.width + level * v.width * v.height) as usize;
+        let n = (nx + ny * w + level * w * h) as usize;
 
         Some(&mut tiles[n])
     }
@@ -102,13 +99,17 @@ impl Renderable for world::World {
         let max_tiles = (view_w * view_h) as usize;
         let mut tiles = Vec::with_capacity(max_tiles);
 
+        let map = &self.data().map;
+        let (map_w, map_h, _) = map.size();
+
         // determine the range of tiles
         let map_start_i = cmp::max(view.x, 0) as u32;
-        let map_end_i = map_start_i + view_w;
+        let map_end_i = cmp::min(map_start_i + view_w, map_w);
         let map_start_j = cmp::max(view.y, 0) as u32;
-        let map_end_j = map_start_j + view_h;
+        let map_end_j = cmp::min(map_start_j + view_h, map_h);
 
-        let map = &self.data().map;
+        // actual dimensions of the tiles vector
+        let actual_size = (map_end_i - map_start_i, map_end_j + map_start_j);
 
         // convert map's data into tiles
         for j in map_start_j..map_end_j {
@@ -119,52 +120,58 @@ impl Renderable for world::World {
             }
         }
 
-        let (map_w, map_h, _) = map.size();
+        let is_visible = |x: u32, y: u32, r: u32| {
+            let (x, y, r) = (x as i32, y as i32, r as i32);
+            let (m_sx, m_sy) = ((map_start_i as i32), (map_start_j as i32));
+            let (m_ex, m_ey) = ((map_end_i as i32), (map_end_j as i32));
+            (x + r >= m_sx && x - r < m_ex) && (y + r >= m_sy && y - r < m_ey)
+        };
 
         // render entities
         let cs = &self.data().components;
         for e in &self.data().entities {
-            if let Some(&components::Position { x, y }) = cs.position.get(e) {
-                if let Some(&components::Glow { radius, .. }) = cs.glow.get(e) {
+            if let Some(ref g) = cs.glow.get(e) {
+                if let Some(&components::Position { x, y }) = cs.position.get(e) {
                     // we got a torch
-
-                    // TODO check if the torch or his glow are visible
+                    if !is_visible(x, y, g.radius) {
+                        continue;
+                    }
 
                     let illum = |ts: &mut Vec<tile::Tile>, v: &NormalizedView, x: u32, y: u32, lum: f32| {
                         // TODO level?
-                        if let Some(t) = RenderedWorldView::get_abs_mut(ts, v, x, y, 0) {
+                        if let Some(t) = RenderedWorldView::get_abs_mut(ts, actual_size, v, x, y, 0) {
                             t.add_effect(tile::Effect::Lit(lum));
-                        }
+                        } 
                     };
 
-                    illum(&mut tiles, &n_view, x, y, 1.0);
+                    let (lm_w, lm_h) = g.light_map_size;
 
-                    let fov = fov::FOV::new(map, x, y, 0, radius);
-                    for j in 0..map_h {
-                        for i in 0..map_w {
-                            if i == x && j == y {
+                    for j in 0..lm_h {
+                        for i in 0..lm_w {
+                            let o = g.get_at(i, j);
+                            if o >= 1.0 {
                                 continue;
                             }
 
-                            let o = fov.get_at(i, j);
-                            if o < 1.0 {
-                                fn fade(x1: u32, y1: u32, x2: u32, y2: u32, _r: u32) -> f32 {
-                                    let (x1, y1) = (x1 as i32, y1 as i32);
-                                    let (x2, y2) = (x2 as i32, y2 as i32);
-                                    let dt = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32;
-                                    1.0 / (1.0 + dt.sqrt())
-                                }
+                            let mx = x + i - lm_w / 2;
+                            let my = y + j - lm_h / 2;
 
-                                let coeff = fade(x, y, i, j, radius);
-                                let lum = 1.0 * (1.0 - o) * coeff;
-                                illum(&mut tiles, &n_view, i, j, lum);
+                            fn fade(x1: u32, y1: u32, x2: u32, y2: u32, _r: u32) -> f32 {
+                                let (x1, y1) = (x1 as i32, y1 as i32);
+                                let (x2, y2) = (x2 as i32, y2 as i32);
+                                let dt = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32;
+                                1.0 / (1.0 + dt.sqrt())
                             }
+
+                            let coeff = fade(x, y, mx, my, g.radius);
+                            let lum = 1.0 * (1.0 - o) * coeff;
+                            illum(&mut tiles, &n_view, mx, my, lum);
                         }
                     }
                 }
             }
         }
 
-        RenderedWorldView { normalized_view: n_view, tiles: tiles }
+        RenderedWorldView { size: actual_size, tiles: tiles }
     }
 }

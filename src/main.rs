@@ -97,6 +97,26 @@ impl Game {
                                 move_torch(&mut w, world::EntityId(0), 1, 0);
                             },
 
+                            ui::Key::W => {
+                                let v = &mut ui.world_ui.ui_view;
+                                v.move2f(0.0, -5.0);
+                            },
+
+                            ui::Key::S => {
+                                let v = &mut ui.world_ui.ui_view;
+                                v.move2f(0.0, 5.0);
+                            },
+
+                            ui::Key::A => {
+                                let v = &mut ui.world_ui.ui_view;
+                                v.move2f(-5.0, 0.0);
+                            },
+
+                            ui::Key::D => {
+                                let v = &mut ui.world_ui.ui_view;
+                                v.move2f(5.0, 0.0);
+                            },
+
                             _ => (),
                         }
                     },

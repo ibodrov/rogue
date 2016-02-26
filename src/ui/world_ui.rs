@@ -17,15 +17,23 @@ const TILE_H: u32 = 12;
 
 pub struct WorldUI {
     world: Rc<RefCell<world::World>>,
-    ui_view: graphics::View,
+    pub ui_view: graphics::View,
+}
+
+pub struct RenderWrapper {
+    render: world::render::RenderedWorldView,
+    view_delta: (i32, i32),
 }
 
 impl WorldUI {
     pub fn new(w: Rc<RefCell<world::World>>) -> Self {
+        let screen_w = 1024;
+        let screen_h = 786;
+
         WorldUI {
             world: w,
-            ui_view: graphics::View::new_init(&Vector2f::new(512.0, 384.0),
-                                              &Vector2f::new(1024.0, 768.0)).unwrap(),
+            ui_view: graphics::View::new_init(&Vector2f::new((screen_w / 2) as f32, (screen_h / 2) as f32),
+                                              &Vector2f::new(screen_w as f32, screen_h as f32)).unwrap(),
         }
     }
 }
@@ -33,41 +41,47 @@ impl WorldUI {
 impl Drawable for WorldUI {
     fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
         let world = self.world.borrow();
+        let (tile_w, tile_h) = (TILE_W as i32, TILE_H as i32);
+
+        let ui_view = &self.ui_view;
+        let (ui_view_w, ui_view_h) = vector2f_to_pair_i32(&ui_view.get_size());
+        let (ui_view_x, ui_view_y) = {
+            let (x, y) = vector2f_to_pair_i32(&ui_view.get_center());
+            (x - ui_view_w / 2, y - ui_view_h / 2)
+        };
 
         let view = {
-            let ui_view = &self.ui_view;
-
-            let (ui_view_w, ui_view_h) = vector2f_to_pair_i32(&ui_view.get_size());
-            let (ui_view_x, ui_view_y) = {
-                let (x, y) = vector2f_to_pair_i32(&ui_view.get_center());
-                (x - ui_view_w / 2, y - ui_view_h / 2)
-            };
-
-            let x = ui_view_x / TILE_W as i32;
-            let y = ui_view_y / TILE_H as i32;
+            let x = ui_view_x / tile_w;
+            let y = ui_view_y / tile_h;
             let w = ui_view_w as u32 / TILE_W + 1;
             let h = ui_view_h as u32 / TILE_H + 1;
 
             render::View::new(x, y, 0, w, h)
         };
 
-
-        let render = world.render(&view);
+        let wrapper = RenderWrapper {
+            render: world.render(&view),
+            view_delta: (ui_view_x, ui_view_y),
+        };
 
         target.set_view(&self.ui_view);
-        target.draw(&render);
+        target.draw(&wrapper);
     }
 }
 
-impl Drawable for render::RenderedWorldView {
+impl Drawable for RenderWrapper {
     fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
         let va = {
-            // dimensions of the view of the world
-            let va_size = self.tiles_count() * 4;
+            // smooth scrolling support
+            let (view_dx, view_dy) = self.view_delta;
+            let (tile_w, tile_h) = (TILE_W as i32, TILE_H as i32);
+
+            // "vertex array size = "tiles count" * "vertexes per quad"
+            let va_size = self.render.tiles_count() * 4;
             let mut va = VertexArray::new_init(PrimitiveType::sfQuads, va_size).unwrap();
 
             let mut vertex_n = 0;
-            for (x, y, tile) in self.iter() {
+            for (x, y, tile) in self.render.iter() {
                 let color = calculate_color(tile);
 
                 // +--------+
@@ -76,12 +90,15 @@ impl Drawable for render::RenderedWorldView {
                 // | 4    3 |
                 // +--------+
 
-                let (x1, y1) = ( x      * TILE_W,  y      * TILE_H);
-                let (x2, y2) = ((x + 1) * TILE_W,  y      * TILE_H);
-                let (x3, y3) = ((x + 1) * TILE_W, (y + 1) * TILE_H);
-                let (x4, y4) = ( x      * TILE_W, (y + 1) * TILE_H);
+                let base_x = x as i32 * tile_w + view_dx;
+                let base_y = y as i32 * tile_h + view_dy;
 
-                fn update(va: &VertexArray, n: u32, x: u32, y: u32, c: &Color) {
+                let (x1, y1) = (base_x,          base_y);
+                let (x2, y2) = (base_x + tile_w, base_y);
+                let (x3, y3) = (base_x + tile_w, base_y + tile_h);
+                let (x4, y4) = (base_x,          base_y + tile_h);
+
+                fn update(va: &VertexArray, n: u32, x: i32, y: i32, c: &Color) {
                     let mut v = va.get_vertex(n);
                     v.0.position.x = x as f32;
                     v.0.position.y = y as f32;

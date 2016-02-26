@@ -5,16 +5,18 @@ mod world_ui;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use self::sfml::graphics::*;
+use self::sfml::graphics::{RenderWindow, RenderTarget, Color};
 use self::sfml::window::{ContextSettings, VideoMode, window_style};
 pub use self::sfml::window::event::Event;
 pub use self::sfml::window::Key;
+pub use self::sfml::graphics::View;
+pub use self::sfml::system::Vector2f;
 
 use world;
 
 pub struct SFMLUI {
     window: RenderWindow,
-    world_ui: world_ui::WorldUI,
+    pub world_ui: world_ui::WorldUI,
 }
 
 impl SFMLUI {
