@@ -1,4 +1,5 @@
 extern crate time;
+extern crate rand;
 
 mod ui;
 mod circle_iter;
@@ -7,6 +8,7 @@ mod world;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use rand::Rng;
 
 struct Game {
     world: Rc<RefCell<world::World>>,
@@ -115,6 +117,18 @@ impl Game {
                             ui::Key::D => {
                                 let v = &mut ui.world_ui.ui_view;
                                 v.move2f(5.0, 0.0);
+                            },
+
+                            ui::Key::Equal => {
+                                let mut w = self.world.borrow_mut();
+                                let mut rng = rand::thread_rng();
+                                let (map_w, map_h, _) = w.data().map.size();
+                                world::add_torch(&mut w, rng.gen_range(0, map_w), rng.gen_range(0, map_h), 10);
+                            },
+
+                            ui::Key::Dash => {
+                                let mut w = self.world.borrow_mut();
+                                w.delete_entity(0);
                             },
 
                             _ => (),

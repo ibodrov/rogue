@@ -108,8 +108,8 @@ impl Renderable for world::World {
         let map_start_j = cmp::max(view.y, 0) as u32;
         let map_end_j = cmp::min(map_start_j + view_h, map_h);
 
-        // actual dimensions of the tiles vector
-        let actual_size = (map_end_i - map_start_i, map_end_j + map_start_j);
+        // actual dimensions of the tiles array
+        let actual_size = (map_end_i - map_start_i, map_end_j - map_start_j);
 
         // convert map's data into tiles
         for j in map_start_j..map_end_j {
@@ -119,6 +119,9 @@ impl Renderable for world::World {
                 tiles.push(t);
             }
         }
+
+        debug_assert!(actual_size.0 * actual_size.1 == tiles.len() as u32,
+                      "Invalid actual size of the tiles vector. Vector size: {}, dimensions: {:?}", tiles.len(), actual_size);
 
         let is_visible = |x: u32, y: u32, r: u32| {
             let (x, y, r) = (x as i32, y as i32, r as i32);

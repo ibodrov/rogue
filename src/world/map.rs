@@ -19,7 +19,8 @@ impl<T: Clone + Copy> Map<T> {
     }
 
     fn idx(&self, x: u32, y: u32, level: u32) -> usize {
-        let (dx, dy, _) = self.size;
+        let (dx, dy, dz) = self.size;
+        debug_assert!(x < dx && y < dy && level < dz, "Invalid map coordinates. Size: {:?}, coordinates: {}, {}, {}", self.size, x, y, level);
         (x + y * dx + level * dx * dy) as usize
     }
 
