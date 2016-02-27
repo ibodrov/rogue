@@ -10,12 +10,12 @@ pub struct Map<T: Clone + Copy> {
 }
 
 impl<T: Clone + Copy> Map<T> {
-    pub fn new(width: u32, height: u32, v: T) -> Self {
+    pub fn new(x_size: u32, y_size: u32, v: T) -> Self {
         let levels = 1;
 
         Map {
-            size: (width, height, levels),
-            data: (0..width*height*levels).map(|_| v).collect(),
+            size: (x_size, y_size, levels),
+            data: (0..x_size * y_size * levels).map(|_| v).collect(),
         }
     }
 

@@ -5,7 +5,7 @@ use world;
 use world::tile;
 use world::components;
 
-// The "window" to the map, described in absolute coordinates.
+/// The "window" to the map, described in absolute coordinates.
 #[derive(Debug, Clone, Copy)]
 pub struct View {
     position: (i32, i32, i32),
@@ -99,21 +99,23 @@ impl Renderable for world::World {
         let cs = &self.data().components;
         for e in &self.data().entities {
             if let Some(ref g) = cs.glow.get(e) {
-                if let Some(&components::Position { x, y }) = cs.position.get(e) {
+                if let Some(&components::Position { x, y, z }) = cs.position.get(e) {
                     // we got a torch
                     if !is_visible(x, y, g.radius) {
                         continue;
                     }
 
-                    let illum = |ts: &mut Vec<tile::Tile>, x: u32, y: u32, lum: f32| {
+                    let illum = |ts: &mut Vec<tile::Tile>, x: u32, y: u32, z: u32, lum: f32| {
                         // TODO level?
-                        if x < n_start_x || y < n_start_y || x >= n_end_x || y >= n_end_y {
+                        if x < n_start_x || x >= n_end_x ||
+                            y < n_start_y || y >= n_end_y ||
+                            z < n_start_z || z >= n_end_z {
                             return;
                         }
 
                         let x = x - n_start_x;
                         let y = y - n_start_y;
-                        let t = RenderedView::get_mut(ts, (n_size_x, n_size_y, n_size_z), x, y, 0);
+                        let t = RenderedView::get_mut(ts, (n_size_x, n_size_y, n_size_z), x, y, z);
                         t.add_effect(tile::Effect::Lit(lum));
                     };
 
@@ -142,7 +144,7 @@ impl Renderable for world::World {
 
                             let coeff = fade(x, y, mx, my, g.radius);
                             let lum = 1.0 * (1.0 - o) * coeff;
-                            illum(&mut tiles, mx, my, lum);
+                            illum(&mut tiles, mx, my, z, lum);
                         }
                     }
                 }

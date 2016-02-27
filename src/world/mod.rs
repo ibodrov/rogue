@@ -86,7 +86,7 @@ impl World {
 pub fn add_torch(w: &mut World, x: u32, y: u32, radius: u32) {
     let id = w.create_entity_id();
     w.create_entity(id, |id, cs| {
-        cs.position.insert(id, components::Position { x: x, y: y });
+        cs.position.insert(id, components::Position { x: x, y: y, z: 0 });
         cs.glow.insert(id, components::Glow::new(radius));
     });
 }
