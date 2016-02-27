@@ -4,8 +4,8 @@
 
 use std::vec::Vec;
 
-use world::map;
 use circle_iter::CircleIter;
+use map;
 
 pub fn iter(map: &map::Map<u8>, start_x: u32, start_y: u32, start_level: u32, r: u32) -> Vec<(i32, i32, f32)> {
     let (map_w, map_h, _) = map.size();

@@ -1,6 +1,7 @@
-use world::WorldData;
-use world::components;
 use fov;
+
+use super::WorldData;
+use components;
 
 pub trait System {
     fn update(&mut self, data: &mut WorldData);

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::vec::Vec;
 use std::fmt;
 
-use world::EntityId;
+use super::EntityId;
 
 pub struct Position {
     pub x: u32,

@@ -1,10 +1,10 @@
 extern crate time;
 extern crate rand;
 
+// our crates
+extern crate world;
+
 mod ui;
-mod circle_iter;
-mod fov;
-mod world;
 
 use std::rc::Rc;
 use std::cell::RefCell;

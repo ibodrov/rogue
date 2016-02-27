@@ -5,6 +5,7 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "sfml 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "world 0.1.0",
 ]
 
 [[package]]
@@ -122,4 +123,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "winapi-build"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "world"
+version = "0.1.0"
+dependencies = [
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 

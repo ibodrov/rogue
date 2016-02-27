@@ -1,4 +1,5 @@
 extern crate sfml;
+extern crate world;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -6,7 +7,6 @@ use self::sfml::graphics;
 use self::sfml::graphics::{Drawable, RenderTarget, RenderStates, VertexArray, PrimitiveType, Color};
 use self::sfml::system::Vector2f;
 
-use world;
 use world::tile;
 use world::render;
 use world::render::Renderable;

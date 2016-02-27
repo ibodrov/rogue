@@ -1,4 +1,5 @@
 extern crate sfml;
+extern crate world;
 
 mod utils;
 mod world_ui;
@@ -11,8 +12,6 @@ pub use self::sfml::window::event::Event;
 pub use self::sfml::window::Key;
 pub use self::sfml::graphics::View;
 pub use self::sfml::system::Vector2f;
-
-use world;
 
 pub struct SFMLUI {
     window: RenderWindow,

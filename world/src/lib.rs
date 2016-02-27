@@ -2,6 +2,8 @@ pub mod map;
 pub mod components;
 pub mod tile;
 pub mod render;
+mod fov;
+mod circle_iter;
 mod systems;
 
 use std::vec::Vec;

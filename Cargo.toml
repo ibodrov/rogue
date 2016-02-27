@@ -10,3 +10,7 @@ debug = true
 sfml = "*"
 time = "*"
 rand = "*"
+
+[dependencies.world]
+path = "world"
+version = "0.1.0"

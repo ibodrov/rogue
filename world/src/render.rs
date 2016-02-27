@@ -1,9 +1,9 @@
 use std::vec::Vec;
 use std::cmp;
 
-use world;
-use world::tile;
-use world::components;
+use super::World;
+use tile;
+use components;
 
 /// The "window" to the map, described in absolute coordinates.
 #[derive(Debug, Clone, Copy)]
@@ -49,7 +49,7 @@ pub trait Renderable {
     fn render(&self, view: &View) -> RenderedView;
 }
 
-impl Renderable for world::World {
+impl Renderable for World {
     fn render(&self, view: &View) -> RenderedView {
         let map = &self.data().map;
 
