@@ -1,9 +1,11 @@
 use std::slice;
 
+#[derive(Debug)]
 pub enum Effect {
     Lit(f32),
 }
 
+#[derive(Debug)]
 pub struct Tile {
     pub ground: u8,
     pub effects: Option<Vec<Effect>>,
@@ -29,40 +31,44 @@ impl Tile {
 }
 
 pub struct TilesIter<'a> {
-    x: u32,
-    y: u32,
-    width: u32,
+    position: (u32, u32, u32),
+    size: (u32, u32, u32),
     delegate: slice::Iter<'a, Tile>,
 }
 
 impl<'a> TilesIter<'a> {
-    pub fn new(width: u32, delegate: slice::Iter<'a, Tile>) -> Self {
+    pub fn new(size: (u32, u32, u32), delegate: slice::Iter<'a, Tile>) -> Self {
         TilesIter {
-            x: 0,
-            y: 0,
-            width: width,
+            position: (0, 0, 0),
+            size: size,
             delegate: delegate,
         }
     }
 }
 
 impl<'a> Iterator for TilesIter<'a> {
-    /// (x, y, &tile)
-    type Item = (u32, u32, &'a Tile);
+    /// (x, y, z, &tile)
+    type Item = (u32, u32, u32, &'a Tile);
 
-    fn next(&mut self) -> Option<(u32, u32, &'a Tile)> {
+    fn next(&mut self) -> Option<(u32, u32, u32, &'a Tile)> {
         match self.delegate.next() {
             Some(t) => {
-                let x = self.x;
-                let y = self.y;
+                let (ref mut x, ref mut y, ref mut z) = self.position;
+                let (w, h, _) = self.size;
 
-                self.x += 1;
-                if self.x >= self.width {
-                    self.x = 0;
-                    self.y += 1;
+                let result = Some((*x, *y, *z, t));
+
+                *x += 1;
+                if *x >= w {
+                    *x = 0;
+                    *y += 1;
+                    if *y >= h {
+                        *y = 0;
+                        *z += 1;
+                    }
                 }
 
-                Some((x, y, t))
+                result
             },
             None => None,
         }
@@ -79,18 +85,18 @@ fn test_iter() {
     tiles.push(Tile::new(2));
     tiles.push(Tile::new(3));
 
-    let mut it = TilesIter::new(2, tiles.iter());
+    let mut it = TilesIter::new((2, 2, 2), tiles.iter());
 
-    fn check(t: Option<(u32, u32, &Tile)>, x: u32, y: u32, g: u8) -> bool {
-        if let Some((tx, ty, &Tile { ground: tg, ..})) = t {
-            tx == x && ty == y && tg == g
+    fn check(t: Option<(u32, u32, u32, &Tile)>, x: u32, y: u32, z: u32, g: u8) -> bool {
+        if let Some((tx, ty, tz, &Tile { ground: tg, ..})) = t {
+            tx == x && ty == y && tz == z && tg == g
         } else {
             false
         }
     };
 
-    assert_eq!(check(it.next(), 0, 0, 0), true);
-    assert_eq!(check(it.next(), 1, 0, 1), true);
-    assert_eq!(check(it.next(), 0, 1, 2), true);
-    assert_eq!(check(it.next(), 1, 1, 3), true);
+    assert_eq!(check(it.next(), 0, 0, 0, 0), true);
+    assert_eq!(check(it.next(), 1, 0, 0, 1), true);
+    assert_eq!(check(it.next(), 0, 1, 0, 2), true);
+    assert_eq!(check(it.next(), 1, 1, 0, 3), true);
 }

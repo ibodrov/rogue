@@ -21,7 +21,7 @@ pub struct WorldUI {
 }
 
 pub struct RenderWrapper {
-    render: world::render::RenderedWorldView,
+    render: world::render::RenderedView,
     view_delta: (i32, i32),
 }
 
@@ -53,15 +53,18 @@ impl Drawable for WorldUI {
         let view = {
             let x = ui_view_x / tile_w;
             let y = ui_view_y / tile_h;
-            let w = ui_view_w as u32 / TILE_W + 1;
-            let h = ui_view_h as u32 / TILE_H + 1;
+            let z = 0;
 
-            render::View::new(x, y, 0, w, h)
+            let sx = (ui_view_w / tile_w) as u32 + 1;
+            let sy = (ui_view_h / tile_h) as u32 + 1;
+            let sz = 1;
+
+            render::View::new((x, y, z), (sx, sy, sz))
         };
 
         let wrapper = RenderWrapper {
             render: world.render(&view),
-            view_delta: (ui_view_x, ui_view_y),
+            view_delta: (ui_view_x.abs(), ui_view_y.abs()),
         };
 
         target.set_view(&self.ui_view);
@@ -81,7 +84,7 @@ impl Drawable for RenderWrapper {
             let mut va = VertexArray::new_init(PrimitiveType::sfQuads, va_size).unwrap();
 
             let mut vertex_n = 0;
-            for (x, y, tile) in self.render.iter() {
+            for (x, y, _, tile) in self.render.iter() {
                 let color = calculate_color(tile);
 
                 // +--------+

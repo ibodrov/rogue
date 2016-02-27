@@ -4,6 +4,7 @@ use std::vec::Vec;
 use self::rand::Rng;
 
 pub struct Map<T: Clone + Copy> {
+    // dimensions of the cells vector (x, y, z)
     size: (u32, u32, u32),
     data: Vec<T>,
 }

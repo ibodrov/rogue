@@ -8,125 +8,90 @@ use world::components;
 // The "window" to the map, described in absolute coordinates.
 #[derive(Debug, Clone, Copy)]
 pub struct View {
-    x: i32,
-    y: i32,
-    level: u32,
-    width: u32,
-    height: u32,
+    position: (i32, i32, i32),
+    size: (u32, u32, u32),
 }
 
 impl View {
-    pub fn new(x: i32, y: i32, level: u32, width: u32, height: u32) -> Self {
-        View {
-            x: x,
-            y: y,
-            level: level,
-            width: width,
-            height: height,
-        }
-    }
-
-    fn normalize(&self) -> NormalizedView {
-        let x = cmp::max(self.x, 0) as u32;
-        let y = cmp::max(self.y, 0) as u32;
-        NormalizedView::new(x, y, self.level, self.width, self.height)
+    pub fn new(position: (i32, i32, i32), size: (u32, u32, u32)) -> Self {
+        View { position: position, size: size }
     }
 }
 
-// Normalized "window" to the map.
-#[derive(Debug, Clone, Copy)]
-pub struct NormalizedView {
-    x: u32,
-    y: u32,
-    level: u32,
-    width: u32,
-    height: u32,
-}
+pub struct RenderedView {
+    // actual dimensions of the tiles vector (x size, y size, z size)
+    size: (u32, u32, u32),
 
-impl NormalizedView {
-    fn new(x: u32, y: u32, level: u32, width: u32, height: u32) -> Self {
-        NormalizedView {
-            x: x,
-            y: y,
-            level: level,
-            width: width,
-            height: height,
-        }
-    }
-}
-
-pub struct RenderedWorldView {
-    size: (u32, u32),
     tiles: Vec<tile::Tile>,
 }
 
-impl RenderedWorldView {
+impl RenderedView {
+    pub fn iter(&self) -> tile::TilesIter {
+        tile::TilesIter::new(self.size, self.tiles.iter())
+    }
+
     pub fn tiles_count(&self) -> u32 {
         self.tiles.len() as u32
     }
 
-    pub fn iter(&self) -> tile::TilesIter {
-        tile::TilesIter::new(self.size.0, self.tiles.iter())
-    }
+    pub fn get_mut(tiles: &mut Vec<tile::Tile>, size: (u32, u32, u32), x: u32, y: u32, z: u32) -> &mut tile::Tile {
+        let n = (x + y * size.0 + z * size.0 * size.1) as usize;
+        debug_assert!(n < tiles.len(),
+                      "Invalid tile index. \
+                       Tiles count: {}, index: {}, size: {:?}, coordinates: {}, {}, {}",
+                      tiles.len(), n, size, x, y, z);
 
-    pub fn get_abs_mut<'a>(tiles: &'a mut Vec<tile::Tile>, size: (u32, u32), v: &NormalizedView, x: u32, y: u32, level: u32) -> Option<&'a mut tile::Tile> {
-        let (w, h) = size;
-        if x < v.x || x >= v.x + w || y < v.y || y >= v.y + h {
-            return None;
-        }
-
-        let (nx, ny) = (x - v.x, y - v.y);
-        let n = (nx + ny * w + level * w * h) as usize;
-
-        Some(&mut tiles[n])
+        &mut tiles[n]
     }
 }
 
 pub trait Renderable {
-    fn render(&self, view: &View) -> RenderedWorldView;
+    fn render(&self, view: &View) -> RenderedView;
 }
 
 impl Renderable for world::World {
-    fn render(&self, view: &View) -> RenderedWorldView {
-        // get the actual (normalized) size of the view
-        let n_view = view.normalize();
+    fn render(&self, view: &View) -> RenderedView {
+        let map = &self.data().map;
 
-        let (view_w, view_h, view_level) = (n_view.width,
-                                            n_view.height,
-                                            n_view.level);
+        let (view_x, view_y, view_z) = view.position;
+        let (view_x_size, view_y_size, view_z_size) = view.size;
+        let (map_max_x, map_max_y, map_max_z) = map.size();
 
-        // estimate the count of the tiles
-        let max_tiles = (view_w * view_h) as usize;
+        fn norm(view_v: i32, view_size: u32, map_size: u32) -> (u32, u32) {
+            let start = cmp::max(0, view_v);
+            let end = cmp::min(map_size as i32, view_v + view_size as i32);
+            (start as u32, end as u32)
+        }
+
+        // normalize dimensions of the visible part of the map
+        let (n_start_x, n_end_x) = norm(view_x, view_x_size, map_max_x);
+        let (n_start_y, n_end_y) = norm(view_y, view_y_size, map_max_y);
+        let (n_start_z, n_end_z) = norm(view_z, view_z_size, map_max_z);
+
+        let n_size_x = n_end_x - n_start_x;
+        let n_size_y = n_end_y - n_start_y;
+        let n_size_z = n_end_z - n_start_z;
+
+        let max_tiles = (n_size_x * n_size_y * n_size_z) as usize;
         let mut tiles = Vec::with_capacity(max_tiles);
 
-        let map = &self.data().map;
-        let (map_w, map_h, _) = map.size();
-
-        // determine the range of tiles
-        let map_start_i = cmp::max(view.x, 0) as u32;
-        let map_end_i = cmp::min(map_start_i + view_w, map_w);
-        let map_start_j = cmp::max(view.y, 0) as u32;
-        let map_end_j = cmp::min(map_start_j + view_h, map_h);
-
-        // actual dimensions of the tiles array
-        let actual_size = (map_end_i - map_start_i, map_end_j - map_start_j);
-
-        // convert map's data into tiles
-        for j in map_start_j..map_end_j {
-            for i in map_start_i..map_end_i {
-                let g = map.get_at(i, j, view_level);
-                let t = tile::Tile::new(*g);
-                tiles.push(t);
+        for z in n_start_z..n_end_z {
+            for y in n_start_y..n_end_y {
+                for x in n_start_x..n_end_x {
+                    let g = map.get_at(x, y, z);
+                    let t = tile::Tile::new(*g);
+                    tiles.push(t);
+                }
             }
         }
 
-        debug_assert!(actual_size.0 * actual_size.1 == tiles.len() as u32,
-                      "Invalid actual size of the tiles vector. Vector size: {}, dimensions: {:?}", tiles.len(), actual_size);
+        debug_assert!(max_tiles == tiles.len(),
+                      "Invalid size of the tiles vector. Expected: {}, actual: {}", max_tiles, tiles.len());
 
         let is_visible = |x: u32, y: u32, r: u32| {
             let (x, y, r) = (x as i32, y as i32, r as i32);
-            let (m_sx, m_sy) = ((map_start_i as i32), (map_start_j as i32));
-            let (m_ex, m_ey) = ((map_end_i as i32), (map_end_j as i32));
+            let (m_sx, m_sy) = ((n_start_x as i32), (n_start_y as i32));
+            let (m_ex, m_ey) = ((n_end_x as i32), (n_end_y as i32));
             (x + r >= m_sx && x - r < m_ex) && (y + r >= m_sy && y - r < m_ey)
         };
 
@@ -140,11 +105,16 @@ impl Renderable for world::World {
                         continue;
                     }
 
-                    let illum = |ts: &mut Vec<tile::Tile>, v: &NormalizedView, x: u32, y: u32, lum: f32| {
+                    let illum = |ts: &mut Vec<tile::Tile>, x: u32, y: u32, lum: f32| {
                         // TODO level?
-                        if let Some(t) = RenderedWorldView::get_abs_mut(ts, actual_size, v, x, y, 0) {
-                            t.add_effect(tile::Effect::Lit(lum));
-                        } 
+                        if x < n_start_x || y < n_start_y || x >= n_end_x || y >= n_end_y {
+                            return;
+                        }
+
+                        let x = x - n_start_x;
+                        let y = y - n_start_y;
+                        let t = RenderedView::get_mut(ts, (n_size_x, n_size_y, n_size_z), x, y, 0);
+                        t.add_effect(tile::Effect::Lit(lum));
                     };
 
                     let (lm_w, lm_h) = g.light_map_size;
@@ -153,6 +123,10 @@ impl Renderable for world::World {
                         for i in 0..lm_w {
                             let o = g.get_at(i, j);
                             if o >= 1.0 {
+                                continue;
+                            }
+
+                            if x + i < lm_w / 2 || y + j < lm_h / 2 {
                                 continue;
                             }
 
@@ -168,13 +142,13 @@ impl Renderable for world::World {
 
                             let coeff = fade(x, y, mx, my, g.radius);
                             let lum = 1.0 * (1.0 - o) * coeff;
-                            illum(&mut tiles, &n_view, mx, my, lum);
+                            illum(&mut tiles, mx, my, lum);
                         }
                     }
                 }
             }
         }
 
-        RenderedWorldView { size: actual_size, tiles: tiles }
+        RenderedView { size: (n_size_x, n_size_y, n_size_z), tiles: tiles }
     }
 }
