@@ -45,6 +45,7 @@ impl Drawable for WorldUI {
 
         let ui_view = &self.ui_view;
         let (ui_view_w, ui_view_h) = vector2f_to_pair_i32(&ui_view.get_size());
+
         let (ui_view_x, ui_view_y) = {
             let (x, y) = vector2f_to_pair_i32(&ui_view.get_center());
             (x - ui_view_w / 2, y - ui_view_h / 2)
@@ -62,8 +63,13 @@ impl Drawable for WorldUI {
             render::View::new((x, y, z), (sx, sy, sz))
         };
 
+        let render = world.render(&view);
+        if render.tiles_count() == 0 {
+            return;
+        }
+
         let wrapper = RenderWrapper {
-            render: world.render(&view),
+            render: render,
             view_delta: (ui_view_x.abs(), ui_view_y.abs()),
         };
 

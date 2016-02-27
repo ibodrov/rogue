@@ -58,8 +58,9 @@ impl Renderable for world::World {
         let (map_max_x, map_max_y, map_max_z) = map.size();
 
         fn norm(view_v: i32, view_size: u32, map_size: u32) -> (u32, u32) {
+            // TODO better handling of negative `view_v`
             let start = cmp::max(0, view_v);
-            let end = cmp::min(map_size as i32, view_v + view_size as i32);
+            let end = cmp::min(map_size as i32, cmp::max(0, view_v + view_size as i32));
             (start as u32, end as u32)
         }
 
@@ -68,9 +69,17 @@ impl Renderable for world::World {
         let (n_start_y, n_end_y) = norm(view_y, view_y_size, map_max_y);
         let (n_start_z, n_end_z) = norm(view_z, view_z_size, map_max_z);
 
-        let n_size_x = n_end_x - n_start_x;
-        let n_size_y = n_end_y - n_start_y;
-        let n_size_z = n_end_z - n_start_z;
+        fn size(s: u32, e: u32) -> u32 {
+            if e < s {
+                0
+            } else {
+                e - s
+            }
+        }
+
+        let n_size_x = size(n_start_x, n_end_x);
+        let n_size_y = size(n_start_y, n_end_y);
+        let n_size_z = size(n_start_z, n_end_z);
 
         let max_tiles = (n_size_x * n_size_y * n_size_z) as usize;
         let mut tiles = Vec::with_capacity(max_tiles);
