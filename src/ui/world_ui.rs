@@ -18,11 +18,18 @@ const TILE_H: u32 = 12;
 pub struct WorldUI {
     world: Rc<RefCell<world::World>>,
     pub ui_view: graphics::View,
+    render_cache: Rc<RefCell<RenderCache>>,
 }
 
-pub struct RenderWrapper {
+struct RenderCache {
+    vertex_array: VertexArray,
+    last_size: u32,
+}
+
+struct RenderWrapper {
     render: world::render::RenderedView,
     view_delta: (i32, i32),
+    cache: Rc<RefCell<RenderCache>>,
 }
 
 impl WorldUI {
@@ -32,8 +39,14 @@ impl WorldUI {
 
         WorldUI {
             world: w,
+
             ui_view: graphics::View::new_init(&Vector2f::new((screen_w / 2) as f32, (screen_h / 2) as f32),
                                               &Vector2f::new(screen_w as f32, screen_h as f32)).unwrap(),
+
+            render_cache: Rc::new(RefCell::new(RenderCache {
+                vertex_array: VertexArray::new_init(PrimitiveType::sfQuads, 0).unwrap(),
+                last_size: 0,
+            })),
         }
     }
 }
@@ -71,6 +84,7 @@ impl Drawable for WorldUI {
         let wrapper = RenderWrapper {
             render: render,
             view_delta: (ui_view_x.abs(), ui_view_y.abs()),
+            cache: self.render_cache.clone(),
         };
 
         target.set_view(&self.ui_view);
@@ -80,14 +94,22 @@ impl Drawable for WorldUI {
 
 impl Drawable for RenderWrapper {
     fn draw<RT: RenderTarget>(&self, target: &mut RT, _: &mut RenderStates) {
+        // "vertex array size = "tiles count" * "vertexes per quad"
+        let va_size = self.render.tiles_count() * 4;
+
+        // cache support
+        let mut cache = self.cache.borrow_mut();
+        if va_size != cache.last_size {
+            cache.vertex_array.resize(va_size);
+            cache.last_size = va_size;
+        }
+
         let va = {
+            let mut va = &mut cache.vertex_array;
+
             // smooth scrolling support
             let (view_dx, view_dy) = self.view_delta;
             let (tile_w, tile_h) = (TILE_W as i32, TILE_H as i32);
-
-            // "vertex array size = "tiles count" * "vertexes per quad"
-            let va_size = self.render.tiles_count() * 4;
-            let mut va = VertexArray::new_init(PrimitiveType::sfQuads, va_size).unwrap();
 
             let mut vertex_n = 0;
             for (x, y, _, tile) in self.render.iter() {
@@ -125,7 +147,7 @@ impl Drawable for RenderWrapper {
             va
         };
 
-        target.draw(&va);
+        target.draw(va);
     }
 }
 

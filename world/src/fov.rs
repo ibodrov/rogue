@@ -41,7 +41,7 @@ impl<F> RPAPartialShadowcasting<F> where F: FnMut(i32, i32) -> f32 {
             check_fn: check_fn,
             iter: CircleIter::new(radius),
             last_octant: 0,
-            obstructions: Vec::new(),
+            obstructions: Vec::with_capacity(10),
         }
     }
 }

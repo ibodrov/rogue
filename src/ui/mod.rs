@@ -12,6 +12,7 @@ pub use self::sfml::window::event::Event;
 pub use self::sfml::window::Key;
 pub use self::sfml::graphics::View;
 pub use self::sfml::system::Vector2f;
+pub use self::sfml::window::MouseButton;
 
 pub struct SFMLUI {
     window: RenderWindow,
@@ -25,8 +26,6 @@ impl SFMLUI {
                                   "rogue",
                                   window_style::TITLEBAR | window_style::CLOSE,
                                   &s).unwrap();
-
-        // w.set_vertical_sync_enabled(true);
 
         SFMLUI {
             window: w,
