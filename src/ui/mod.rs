@@ -8,11 +8,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use self::sfml::graphics::{RenderWindow, RenderTarget, Color};
 use self::sfml::window::{ContextSettings, VideoMode, window_style};
-pub use self::sfml::window::event::Event;
 pub use self::sfml::window::Key;
-pub use self::sfml::graphics::View;
-pub use self::sfml::system::Vector2f;
-pub use self::sfml::window::MouseButton;
+pub use self::sfml::window::event::Event;
 
 pub struct SFMLUI {
     window: RenderWindow,
