@@ -10,6 +10,7 @@ debug = true
 sfml = "*"
 time = "*"
 rand = "*"
+jobsteal = "*"
 
 [dependencies.world]
 path = "world"

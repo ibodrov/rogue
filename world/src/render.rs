@@ -51,7 +51,8 @@ pub trait Renderable {
 
 impl Renderable for World {
     fn render(&self, view: &View) -> RenderedView {
-        let map = &self.data().map;
+        let data = self.data.lock().unwrap();
+        let map = &data.map;
 
         let (view_x, view_y, view_z) = view.position;
         let (view_x_size, view_y_size, view_z_size) = view.size;
@@ -105,8 +106,8 @@ impl Renderable for World {
         };
 
         // render entities
-        let cs = &self.data().components;
-        for e in &self.data().entities {
+        let cs = &data.components;
+        for e in &data.entities {
             if let Some(ref g) = cs.glow.get(e) {
                 if let Some(&components::Position { x, y, z }) = cs.position.get(e) {
                     // we got a torch

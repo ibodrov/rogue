@@ -39,7 +39,8 @@ impl Game {
                     ui::Event::KeyPressed { code, .. } => {
                         fn move_torch(w: &mut world::World, id: world::EntityId, dx: i32, dy: i32) {
                             let (map_w, map_h) = {
-                                let (w, h, _) = w.data().map.size();
+                                let data = &*w.data.lock().unwrap();
+                                let (w, h, _) = data.map.size();
                                 (w as i32, h as i32)
                             };
 
@@ -76,7 +77,8 @@ impl Game {
                         match code {
                             ui::Key::Space => {
                                 let mut w = self.world.borrow_mut();
-                                w.data_mut().map.randomize(1, 0);
+                                let data = &mut *w.data.lock().unwrap();
+                                data.map.randomize(1, 0);
                             },
 
                             ui::Key::Down => {
@@ -122,7 +124,10 @@ impl Game {
                             ui::Key::Equal => {
                                 let mut w = self.world.borrow_mut();
                                 let mut rng = rand::thread_rng();
-                                let (map_w, map_h, _) = w.data().map.size();
+                                let (map_w, map_h, _) = {
+                                    let data = &w.data.lock().unwrap();
+                                    data.map.size()
+                                };
                                 world::add_torch(&mut w, rng.gen_range(0, map_w), rng.gen_range(0, map_h), 10);
                             },
 

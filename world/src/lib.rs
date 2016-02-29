@@ -7,6 +7,8 @@ mod circle_iter;
 mod systems;
 
 use std::vec::Vec;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EntityId(pub u64);
@@ -19,7 +21,7 @@ pub struct WorldData {
 
 pub struct World {
     next_entity_id: u64,
-    data: WorldData,
+    pub data: Arc<Mutex<WorldData>>,
     systems: Vec<Box<systems::System>>,
 }
 
@@ -27,12 +29,12 @@ impl World {
     pub fn new() -> Self {
         let mut w = World {
             next_entity_id: 0,
-            data: WorldData {
+            data: Arc::new(Mutex::new(WorldData {
                 map: map::Map::new(128, 128, 0),
                 entities: Vec::new(),
                 components: components::Components::new(),
-            },
-            systems: vec![Box::new(systems::LightingSystem)],
+            })),
+            systems: vec![Box::new(systems::LightingSystem::new())],
         };
 
         add_torch(&mut w, 10, 10, 10);
@@ -47,40 +49,36 @@ impl World {
     }
 
     pub fn delete_entity(&mut self, idx: usize) {
-        let e = &mut self.data.entities;
+        let data = &mut *self.data.lock().unwrap();
+
+        let e = &mut data.entities;
         if e.len() == 0 {
             return;
         }
 
         let id = e.remove(idx);
 
-        let c = &mut self.data.components;
-        c.position.remove(&id);
-        c.glow.remove(&id);
-    }
-
-    pub fn data(&self) -> &WorldData {
-        &self.data
-    }
-
-    pub fn data_mut(&mut self) -> &mut WorldData {
-        &mut self.data
+        let cs = &mut data.components;
+        cs.position.remove(&id);
+        cs.glow.remove(&id);
     }
 
     pub fn create_entity<F>(&mut self, id: EntityId, builder: F)
         where F: Fn(EntityId, &mut components::Components) {
 
-        builder(id, &mut self.data_mut().components);
-        self.data.entities.push(id);
+        let data = &mut *self.data.lock().unwrap();
+        builder(id, &mut data.components);
+        data.entities.push(id);
     }
 
     pub fn update<F>(&mut self, f: F) where F: Fn(&mut components::Components) {
-        f(&mut self.data_mut().components);
+        let data = &mut *self.data.lock().unwrap();
+        f(&mut data.components);
     }
 
     pub fn tick(&mut self) {
         for s in self.systems.iter_mut() {
-            s.update(&mut self.data);
+            s.update(self.data.clone());
         }
     }
 }
