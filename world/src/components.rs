@@ -1,8 +1,5 @@
-use std::collections::HashMap;
 use std::vec::Vec;
 use std::fmt;
-
-use super::EntityId;
 
 pub struct Position {
     pub x: u32,
@@ -56,16 +53,3 @@ impl fmt::Debug for Glow {
     }
 }
 
-pub struct Components {
-    pub position: HashMap<EntityId, Position>,
-    pub glow: HashMap<EntityId, Glow>,
-}
-
-impl Components {
-    pub fn new() -> Self {
-        Components {
-            position: HashMap::new(),
-            glow: HashMap::new(),
-        }
-    }
-}

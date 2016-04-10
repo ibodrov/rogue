@@ -44,7 +44,7 @@ impl Game {
                             };
 
                             w.update(|cs| {
-                                if let Some(pos) = cs.position.get_mut(&id) {
+                                if let Some(pos) = cs.get_component_mut::<world::components::Position>(&id) {
                                     let (x, y) = {
                                         let mut x = (pos.x as i32) + dx;
                                         if x < 0 {

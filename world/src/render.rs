@@ -105,10 +105,9 @@ impl Renderable for World {
         };
 
         // render entities
-        let cs = &self.data().components;
         for e in &self.data().entities {
-            if let Some(ref g) = cs.glow.get(e) {
-                if let Some(&components::Position { x, y, z }) = cs.position.get(e) {
+            if let Some(ref g) = self.data().get_component::<components::Glow>(e) {
+                if let Some(&components::Position { x, y, z }) = self.data().get_component::<components::Position>(e) {
                     // we got a torch
                     if !is_visible(x, y, g.radius) {
                         continue;

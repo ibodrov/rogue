@@ -1,5 +1,7 @@
 use fov;
 
+use std::vec::Vec;
+
 use super::WorldData;
 use components;
 
@@ -11,16 +13,18 @@ pub struct LightingSystem;
 
 impl System for LightingSystem {
     fn update(&mut self, data: &mut WorldData) {
-        let cs = &mut data.components;
+        let mut result = Vec::new();
+
         for e in &data.entities {
-            // TODO macro?
-            if let Some(ref mut g) = cs.glow.get_mut(e) {
-                if let Some(&components::Position { x, y, z }) = cs.position.get(e) {
+            if let Some(g) = data.get_component::<components::Glow>(e) {
+                if let Some(&components::Position { x, y, z }) = data.get_component::<components::Position>(e) {
                     // we got a omnidirectional light source
                     let r = g.radius;
                     let (lm_w, lm_h) = ((r * 2) + 1, (r * 2) + 1);
                     let lm_size = (lm_w * lm_h) as usize;
 
+                    // TODO get rid of copying?
+                    let mut g = components::Glow::new(r);
                     g.light_map_size = (lm_w, lm_h);
                     g.light_map = {
                         let mut v = Vec::with_capacity(lm_size);
@@ -35,8 +39,14 @@ impl System for LightingSystem {
                         }
                         g.set_at(gx as u32, gy as u32, o);
                     }
+
+                    result.push((*e, g));
                 }
             }
+        }
+
+        for (e, g) in result {
+            data.add_component(e, g);
         }
     }
 }
