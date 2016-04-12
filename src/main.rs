@@ -1,159 +1,53 @@
+#[macro_use]
+extern crate gfx;
+extern crate gfx_window_glutin;
+extern crate gfx_device_gl;
+extern crate glutin;
+extern crate cgmath;
 extern crate time;
-extern crate rand;
 
-// our crates
-extern crate world;
+mod world_render;
 
-mod ui;
+use gfx::Device;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-use rand::Rng;
+pub type ColorFormat = gfx::format::Rgba8;
+pub type DepthFormat = gfx::format::DepthStencil;
 
-struct Game {
-    world: Rc<RefCell<world::World>>,
-    ui: ui::SFMLUI,
-}
+pub fn main() {
+    let builder = glutin::WindowBuilder::new()
+        .with_title("Rogue".to_string())
+        .with_dimensions(1024, 768);
 
-impl Game {
-    fn new() -> Game {
-        let w = Rc::new(RefCell::new(world::World::new()));
+    let (window, mut device, mut factory, main_color, _) =
+        gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
+    let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
-        Game {
-            world: w.clone(),
-            ui: ui::SFMLUI::new(w.clone()),
-        }
-    }
+    let wr = world_render::RenderableWorld::new(&mut factory, main_color);
 
-    fn do_loop(&mut self) {
-        let ui = &mut self.ui;
+    let mut t1 = 0.0;
+    let mut frames = 0;
 
-        let mut cnt = 0;
-        let mut t0 = time::precise_time_s();
-
-        while ui.is_open() {
-            loop {
-                match ui.poll_event() {
-                    ui::Event::NoEvent => break,
-                    ui::Event::Closed => return,
-                    ui::Event::KeyPressed { code, .. } => {
-                        fn move_torch(w: &mut world::World, id: world::EntityId, dx: i32, dy: i32) {
-                            let (map_w, map_h) = {
-                                let (w, h, _) = w.data().map.size();
-                                (w as i32, h as i32)
-                            };
-
-                            w.update(|cs| {
-                                if let Some(pos) = cs.get_component_mut::<world::components::Position>(&id) {
-                                    let (x, y) = {
-                                        let mut x = (pos.x as i32) + dx;
-                                        if x < 0 {
-                                            x = 0;
-                                        }
-
-                                        if x >= map_w {
-                                            x = map_w - 1;
-                                        }
-
-                                        let mut y = (pos.y as i32) + dy;
-                                        if y < 0 {
-                                            y = 0;
-                                        }
-
-                                        if y >= map_h {
-                                            y = map_h - 1;
-                                        }
-
-                                        (x as u32, y as u32)
-                                    };
-
-                                    pos.x = x;
-                                    pos.y = y;
-                                }
-                            });
-                        }
-
-                        match code {
-                            ui::Key::Space => {
-                                let mut w = self.world.borrow_mut();
-                                w.data_mut().map.randomize(1, 0);
-                            },
-
-                            ui::Key::Down => {
-                                let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, world::EntityId(0), 0, 1);
-                            },
-
-                            ui::Key::Up => {
-                                let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, world::EntityId(0), 0, -1);
-                            },
-
-                            ui::Key::Left => {
-                                let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, world::EntityId(0), -1, 0);
-                            },
-
-                            ui::Key::Right => {
-                                let mut w = self.world.borrow_mut();
-                                move_torch(&mut w, world::EntityId(0), 1, 0);
-                            },
-
-                            ui::Key::W => {
-                                let v = &mut ui.world_ui.ui_view;
-                                v.move2f(0.0, -5.0);
-                            },
-
-                            ui::Key::S => {
-                                let v = &mut ui.world_ui.ui_view;
-                                v.move2f(0.0, 5.0);
-                            },
-
-                            ui::Key::A => {
-                                let v = &mut ui.world_ui.ui_view;
-                                v.move2f(-5.0, 0.0);
-                            },
-
-                            ui::Key::D => {
-                                let v = &mut ui.world_ui.ui_view;
-                                v.move2f(5.0, 0.0);
-                            },
-
-                            ui::Key::Equal => {
-                                let mut w = self.world.borrow_mut();
-                                let mut rng = rand::thread_rng();
-                                let (map_w, map_h, _) = w.data().map.size();
-                                world::add_torch(&mut w, rng.gen_range(0, map_w), rng.gen_range(0, map_h), 10);
-                            },
-
-                            ui::Key::Dash => {
-                                let mut w = self.world.borrow_mut();
-                                w.delete_entity(0);
-                            },
-
-                            _ => (),
-                        }
-                    },
-                    _ => continue,
-                }
-            }
-
-            self.world.borrow_mut().tick();
-            ui.display();
-
-            cnt += 1;
-            let t1 = time::precise_time_s();
-            let dt = t1 - t0;
-            if dt >= 1.0 {
-                println!("FPS: {}", cnt);
-                cnt = 0;
-                t0 = t1;
+    'main: loop {
+        for event in window.poll_events() {
+            match event {
+                glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::Escape)) |
+                glutin::Event::Closed => break 'main,
+                _ => {},
             }
         }
-    }
-}
 
-fn main() {
-    let mut game = Game::new();
-    game.do_loop();
+        wr.render(&mut encoder);
+        encoder.flush(&mut device);
+        window.swap_buffers().unwrap();
+        device.cleanup();
+
+        frames += 1;
+
+        let t2 = time::precise_time_s();
+        if t2 - t1 > 1.0 {
+            t1 = t2;
+            window.set_title(&format!("FPS: {}", frames));
+            frames = 0;
+        }
+    }
 }

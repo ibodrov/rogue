@@ -8,6 +8,11 @@ debug = true
 
 [dependencies]
 sfml = "*"
+gfx = "*"
+gfx_window_glutin = "*"
+gfx_device_gl = "*"
+glutin = "*"
+cgmath = "*"
 time = "*"
 rand = "*"
 
