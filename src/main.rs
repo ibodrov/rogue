@@ -22,7 +22,7 @@ pub fn main() {
         gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
     let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
-    let wr = world_render::RenderableWorld::new(&mut factory, main_color);
+    let mut wr = world_render::RenderableWorld::new(&mut factory, main_color);
 
     let mut t1 = 0.0;
     let mut frames = 0;
@@ -32,6 +32,16 @@ pub fn main() {
             match event {
                 glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::Escape)) |
                 glutin::Event::Closed => break 'main,
+
+                glutin::Event::KeyboardInput(_, _, Some(code)) => {
+                    match code {
+                        glutin::VirtualKeyCode::Up => wr.move_view(0, -5),
+                        glutin::VirtualKeyCode::Down => wr.move_view(0, 5),
+                        glutin::VirtualKeyCode::Left => wr.move_view(-5, 0),
+                        glutin::VirtualKeyCode::Right => wr.move_view(5, 0),
+                        _ => (),
+                    }
+                },
                 _ => {},
             }
         }

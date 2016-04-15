@@ -18,6 +18,7 @@ gfx_pipeline!(pipe {
     vbuf: gfx::VertexBuffer<Vertex> = (),
     instance: gfx::InstanceBuffer<Instance> = (),
     transform: gfx::Global<[[f32; 4]; 4]> = "u_Transform",
+    offset: gfx::Global<[i32; 2]> = "u_Offset",
     out: gfx::RenderTarget<ColorFormat> = "Target0",
 });
 
@@ -39,6 +40,11 @@ pub struct RenderableWorld {
     slice: gfx::Slice<gfx_device_gl::Resources>,
 }
 
+struct View {
+    x: i32,
+    y: i32,
+}
+
 impl RenderableWorld {
     pub fn new(factory: &mut gfx_device_gl::Factory, out: gfx::handle::RenderTargetView<gfx_device_gl::Resources, (gfx::format::R8_G8_B8_A8, gfx::format::Unorm)>) -> Self {
         use gfx::traits::{Factory, FactoryExt};
@@ -50,8 +56,8 @@ impl RenderableWorld {
             pipe::new()
         ).unwrap();
 
-        let instance_cols = 1024 / TILE_SIZE;
-        let instance_rows = 768 / TILE_SIZE;
+        let instance_cols = 1024 / TILE_SIZE * 8;
+        let instance_rows = 768 / TILE_SIZE * 8;
         let instance_count = (instance_rows * instance_cols) as u32;
 
         let quad_instances = {
@@ -75,6 +81,7 @@ impl RenderableWorld {
             vbuf: vertex_buffer,
             instance: quad_instances,
             transform: proj.into(),
+            offset: [0, 0].into(),
             out: out,
         };
 
@@ -88,5 +95,11 @@ impl RenderableWorld {
     pub fn render(&self, encoder: &mut gfx::Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer>) {
         encoder.clear(&self.data.out, CLEAR_COLOR);
         encoder.draw(&self.slice, &self.pso, &self.data);
+    }
+
+    pub fn move_view(&mut self, dx: i32, dy: i32) {
+        let o = &mut self.data.offset;
+        o[0] += dx;
+        o[1] += dy;
     }
 }
