@@ -18,6 +18,19 @@ struct Vertex {
 
 implement_vertex!(Vertex, position);
 
+#[derive (Copy, Clone)]
+struct Instance {
+    screen_position: [i32; 2],
+    color: [f32; 3],
+}
+
+implement_vertex!(Instance, screen_position, color);
+
+struct View {
+    x: i32,
+    y: i32,
+}
+
 const QUAD_INDICES: &'static [u16] = &[0u16, 1, 2, 1, 3, 2];
 const QUAD: &'static [Vertex] = &[
     Vertex { position: [0,          TILE_HEIGHT], },
@@ -42,14 +55,6 @@ pub fn start() {
     let index_buffer = glium::IndexBuffer::new(&display,
                                                glium::index::PrimitiveType::TrianglesList,
                                                QUAD_INDICES).unwrap();
-
-    #[derive (Copy, Clone)]
-    struct Attr {
-        screen_position: (i32, i32),
-        color: (f32, f32, f32),
-    }
-
-    implement_vertex!(Attr, screen_position, color);
 
     let vertex_shader = r#"
         #version 150
@@ -82,14 +87,7 @@ pub fn start() {
     let program = glium::Program::from_source(&display, &vertex_shader, &fragment_shader, None).unwrap();
     let proj: [[f32; 4]; 4] = cgmath::ortho(0.0, SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32, 0.0, -1.0, 1.0).into();
 
-    struct View {
-        x: i32,
-        y: i32,
-    }
-
     let mut view = View { x: 0, y: 0 };
-
-    //let map_data = (0..MAP_WIDTH * MAP_HEIGHT).map(|_| 0).collect::<Vec<_>>();
 
     let mut t0 = time::precise_time_s();
     let mut frames = 0;
@@ -99,11 +97,12 @@ pub fn start() {
             match ev {
                 Event::Closed | Event::KeyboardInput(_, _, Some(VirtualKeyCode::Escape)) => return,
                 Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
+                    let scroll_speed = 10;
                     match code {
-                        VirtualKeyCode::Up => view.y -= 5,
-                        VirtualKeyCode::Down => view.y += 5,
-                        VirtualKeyCode::Left => view.x -= 5,
-                        VirtualKeyCode::Right => view.x += 5,
+                        VirtualKeyCode::Up => view.y -= scroll_speed,
+                        VirtualKeyCode::Down => view.y += scroll_speed,
+                        VirtualKeyCode::Left => view.x -= scroll_speed,
+                        VirtualKeyCode::Right => view.x += scroll_speed,
                         VirtualKeyCode::Space => world.data_mut().map.randomize(1, 0),
                         _ => (),
                     }
@@ -133,23 +132,7 @@ pub fn start() {
                 };
 
                 // smooth scrolling support
-                let (view_dx, view_dy) = {
-                    let View { mut x, mut y } = view;
-
-                    if x > 0 {
-                        x = -(x % TILE_WIDTH);
-                    } else {
-                        x = x.abs();
-                    }
-
-                    if y > 0 {
-                        y = -(y % TILE_HEIGHT);
-                    } else {
-                        y = y.abs();
-                    }
-
-                    (x, y)
-                };
+                let (view_dx, view_dy) = get_view_delta(&view);
 
                 let render = world.render(&world_view);
                 let mut v = Vec::with_capacity(render.tiles_count() as usize);
@@ -158,32 +141,8 @@ pub fn start() {
                     let x = x as i32 * TILE_WIDTH + view_dx;
                     let y = y as i32 * TILE_HEIGHT + view_dy;
 
-                    let color = {
-                        let mut r = 0.0;
-                        let mut g = 0.0;
-                        let mut b = 0.0;
-
-                        match tile.ground {
-                            1 => r = 1.0,
-                            _ => (),
-                        }
-
-                        if let Some(ref effects) = tile.effects {
-                            for e in effects {
-                                match e {
-                                    &world::tile::Effect::Lit(lum) => {
-                                        let c = (255.0 * lum).min(255.0) / 255.0;
-                                        r += c;
-                                        g += c;
-                                        b += c;
-                                    },
-                                }
-                            }
-                        }
-
-                        (r.min(1.0), g.min(1.0), b.min(1.0))
-                    };
-                    v.push(Attr { screen_position: (x, y), color: color });
+                    let color = calculate_color(&tile);
+                    v.push(Instance { screen_position: [x, y], color: color });
                 }
 
                 v
@@ -206,4 +165,48 @@ pub fn start() {
             frames = 0;
         }
     }
+}
+
+fn get_view_delta(v: &View) -> (i32, i32) {
+    let &View { mut x, mut y } = v;
+
+    if x > 0 {
+        x = -(x % TILE_WIDTH);
+    } else {
+        x = x.abs();
+    }
+
+    if y > 0 {
+        y = -(y % TILE_HEIGHT);
+    } else {
+        y = y.abs();
+    }
+
+    (x, y)
+}
+
+fn calculate_color(t: &world::tile::Tile) -> [f32; 3] {
+    let mut r = 0.0;
+    let mut g = 0.0;
+    let mut b = 0.0;
+
+    match t.ground {
+        1 => r = 1.0,
+        _ => (),
+    }
+
+    if let Some(ref effects) = t.effects {
+        for e in effects {
+            match e {
+                &world::tile::Effect::Lit(lum) => {
+                    let c = (255.0 * lum).min(255.0) / 255.0;
+                    r += c;
+                    g += c;
+                    b += c;
+                },
+            }
+        }
+    }
+
+    [r.min(1.0), g.min(1.0), b.min(1.0)]
 }
