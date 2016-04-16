@@ -7,7 +7,6 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 debug = true
 
 [dependencies]
-sfml = "*"
 glium = "*"
 cgmath = "*"
 time = "*"
