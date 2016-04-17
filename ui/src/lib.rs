@@ -3,20 +3,22 @@ extern crate glium;
 extern crate cgmath;
 extern crate time;
 extern crate world;
+extern crate image;
 
 use world::render::Renderable;
 
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
-const TILE_WIDTH: i32 = 16;
-const TILE_HEIGHT: i32 = 16;
+const TILE_WIDTH: i32 = 8;
+const TILE_HEIGHT: i32 = 12;
 
 #[derive(Copy, Clone)]
 struct Vertex {
     position: [i32; 2],
+    tex_coords: [f32; 2],
 }
 
-implement_vertex!(Vertex, position);
+implement_vertex!(Vertex, position, tex_coords);
 
 #[derive (Copy, Clone)]
 struct Instance {
@@ -33,10 +35,10 @@ struct View {
 
 const QUAD_INDICES: &'static [u16] = &[0u16, 1, 2, 1, 3, 2];
 const QUAD: &'static [Vertex] = &[
-    Vertex { position: [0,          TILE_HEIGHT], },
-    Vertex { position: [TILE_WIDTH, TILE_HEIGHT], },
-    Vertex { position: [0,          0],           },
-    Vertex { position: [TILE_WIDTH, 0],           },
+    Vertex { position: [0,          TILE_HEIGHT], tex_coords: [0.0, 1.0] },
+    Vertex { position: [TILE_WIDTH, TILE_HEIGHT], tex_coords: [1.0, 1.0] },
+    Vertex { position: [0,          0],           tex_coords: [0.0, 0.0] },
+    Vertex { position: [TILE_WIDTH, 0],           tex_coords: [1.0, 0.0] },
 ];
 
 pub fn start() {
@@ -50,6 +52,13 @@ pub fn start() {
         .build_glium()
         .unwrap();
 
+    let texture = {
+        let image = image::load(std::fs::File::open("tiles.png").unwrap(), image::PNG).unwrap().to_rgba();
+        let image_dimensions = image.dimensions();
+        let image = glium::texture::RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dimensions);
+        glium::texture::CompressedSrgbTexture2d::new(&display, image).unwrap()
+    };
+
     let vertex_buffer = glium::VertexBuffer::new(&display, &QUAD).unwrap();
 
     let index_buffer = glium::IndexBuffer::new(&display,
@@ -60,27 +69,39 @@ pub fn start() {
         #version 150
 
         in ivec2 position;
+        in vec2 tex_coords;
         in ivec2 screen_position;
         in vec3 color;
 
         uniform mat4 matrix;
 
         out vec3 v_Color;
+        out vec2 v_TexCoords;
 
         void main() {
             gl_Position = matrix * vec4(position + screen_position, 0.0, 1.0);
             v_Color = color;
+
+            float tile_offset_x = (1.0 / 16.0) * 2;
+            float tile_offset_y = 0.0;
+
+            float u = tex_coords.x * (1.0 / 16.0) + tile_offset_x;
+            float v = 1.0 - (tex_coords.y * (1.0 / 16.0) + tile_offset_y);
+
+            v_TexCoords = vec2(u, v);
         }
     "#;
 
     let fragment_shader = r#"
         #version 150
 
-        in vec3 v_Color;
+        in vec2 v_TexCoords;
+
+        uniform sampler2D tex;
         out vec4 color;
 
         void main() {
-            color = vec4(v_Color, 1.0);
+            color = texture(tex, v_TexCoords);
         }
     "#;
 
@@ -115,6 +136,7 @@ pub fn start() {
 
         let uniforms = uniform! {
             matrix: proj,
+            tex: &texture,
         };
 
         let instances = {
