@@ -106,6 +106,15 @@ impl Renderable for World {
 
         // render entities
         for e in &self.data().entities {
+            if let Some(&components::Visible { mark }) = self.data.get_component::<components::Visible>(e) {
+                if let Some(&components::Position { x, y, z }) = self.data.get_component::<components::Position>(e) {
+                    if is_visible(x, y, 1) {
+                        let t = RenderedView::get_mut(&mut tiles, (n_size_x, n_size_y, n_size_z), x, y, z);
+                        t.add_effect(tile::Effect::Marked(mark));
+                    }
+                }
+            }
+
             if let Some(ref g) = self.data().get_component::<components::Glow>(e) {
                 if let Some(&components::Position { x, y, z }) = self.data().get_component::<components::Position>(e) {
                     // we got a torch

@@ -1,10 +1,47 @@
+extern crate rand;
+
 use std::vec::Vec;
 use std::fmt;
+use self::rand::Rng;
 
 pub struct Position {
     pub x: u32,
     pub y: u32,
     pub z: u32,
+}
+
+pub struct Speed {
+    pub x: f32,
+    pub y: f32,
+    pub dx: i32,
+    pub dy: i32,
+}
+
+impl Speed {
+    pub fn rand() -> Self {
+        let mut rng = rand::thread_rng();
+        let signs = [1, -1];
+        let base: i32 = rng.gen_range(1, 20);
+
+        Speed {
+            x: 0.0,
+            y: 0.0,
+            dx: base * rng.choose(&signs).unwrap(),
+            dy: base * rng.choose(&signs).unwrap(),
+        }
+    }
+}
+
+pub struct Visible {
+    pub mark: u32,
+}
+
+impl Default for Visible {
+    fn default() -> Self {
+        Visible {
+            mark: 0,
+        }
+    }
 }
 
 pub struct Glow {

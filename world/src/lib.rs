@@ -1,3 +1,5 @@
+extern crate time;
+
 pub mod map;
 pub mod components;
 pub mod tile;
@@ -68,6 +70,7 @@ pub struct World {
     next_entity_id: u64,
     data: WorldData,
     systems: Vec<Box<systems::System>>,
+    last_timestamp: f64,
 }
 
 impl World {
@@ -79,10 +82,19 @@ impl World {
                 entities: Vec::new(),
                 components: HashMap::new(),
             },
-            systems: vec![Box::new(systems::LightingSystem)],
+            systems: vec![Box::new(systems::LightingSystem),
+                          Box::new(systems::MovementSystem)],
+            last_timestamp: time::precise_time_s()
         };
 
+        /*
         add_torch(&mut w, 10, 10, 10);
+         */
+        w.data.map.randomize(1, 0);
+
+        for x in 1..11 {
+            add_bouncer(&mut w, x * 5, x * 5);
+        }
 
         w
     }
@@ -126,8 +138,12 @@ impl World {
     }
 
     pub fn tick(&mut self) {
+        let current_timestamp = time::precise_time_s();
+        let dt = self.last_timestamp - current_timestamp;
+        self.last_timestamp = current_timestamp;
+
         for s in self.systems.iter_mut() {
-            s.update(&mut self.data);
+            s.update(&mut self.data, dt);
         }
     }
 }
@@ -137,5 +153,15 @@ pub fn add_torch(w: &mut World, x: u32, y: u32, radius: u32) {
     w.create_entity(id, |id, data| {
         data.add_component(id, components::Position { x: x, y: y, z: 0 });
         data.add_component(id, components::Glow::new(radius));
+    });
+}
+
+pub fn add_bouncer(w: &mut World, x: u32, y: u32) {
+    let id = w.create_entity_id();
+    w.create_entity(id, |id, data| {
+        data.add_component(id, components::Position { x: x, y: y, z: 0});
+        data.add_component(id, components::Speed::rand());
+        //data.add_component(id, components::Visible::default());
+        data.add_component(id, components::Glow::new(10));
     });
 }

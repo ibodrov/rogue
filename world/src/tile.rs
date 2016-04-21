@@ -3,6 +3,7 @@ use std::slice;
 #[derive(Debug)]
 pub enum Effect {
     Lit(f32),
+    Marked(u32),
 }
 
 #[derive(Debug)]

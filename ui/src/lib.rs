@@ -8,8 +8,8 @@ use world::render::Renderable;
 
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
-const TILE_WIDTH: i32 = 16;
-const TILE_HEIGHT: i32 = 16;
+const TILE_WIDTH: i32 = 8;
+const TILE_HEIGHT: i32 = 8;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -204,6 +204,12 @@ fn calculate_color(t: &world::tile::Tile) -> [f32; 3] {
                     g += c;
                     b += c;
                 },
+
+                &world::tile::Effect::Marked(_) => {
+                    r = 1.0;
+                    g = 1.0;
+                    b = 1.0;
+                }
             }
         }
     }
