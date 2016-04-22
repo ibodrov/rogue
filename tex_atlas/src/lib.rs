@@ -51,7 +51,7 @@ impl TextureAtlas {
     }
 }
 
-pub fn load<F>(display: &F, path: &Path) -> Result<TextureAtlas, TextureAtlasError> where F: Facade {
+pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, TextureAtlasError> {
     let img = try!(image::open(path)).to_rgba();
     let dimensions = img.dimensions();
 
