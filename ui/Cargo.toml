@@ -11,3 +11,7 @@ time = "*"
 [dependencies.world]
 path = "../world"
 version = "0.1.0"
+
+[dependencies.tex_atlas]
+path = "../tex_atlas"
+version = "0.1.0"

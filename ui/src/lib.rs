@@ -3,13 +3,14 @@ extern crate glium;
 extern crate cgmath;
 extern crate time;
 extern crate world;
+extern crate tex_atlas;
 
 use world::render::Renderable;
 
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
 const TILE_WIDTH: i32 = 8;
-const TILE_HEIGHT: i32 = 8;
+const TILE_HEIGHT: i32 = 10;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -33,10 +34,10 @@ struct View {
 
 const QUAD_INDICES: &'static [u16] = &[0u16, 1, 2, 1, 3, 2];
 const QUAD: &'static [Vertex] = &[
-    Vertex { position: [0,          TILE_HEIGHT], },
-    Vertex { position: [TILE_WIDTH, TILE_HEIGHT], },
-    Vertex { position: [0,          0],           },
-    Vertex { position: [TILE_WIDTH, 0],           },
+    Vertex { position: [0, 1], },
+    Vertex { position: [1, 1], },
+    Vertex { position: [0, 0], },
+    Vertex { position: [1, 0], },
 ];
 
 pub fn start() {
@@ -49,6 +50,8 @@ pub fn start() {
         .with_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT)
         .build_glium()
         .unwrap();
+
+    let atlas = tex_atlas::load(&display, std::path::Path::new("tiles.png")).unwrap();
 
     let vertex_buffer = glium::VertexBuffer::new(&display, &QUAD).unwrap();
 
@@ -64,11 +67,21 @@ pub fn start() {
         in vec3 color;
 
         uniform mat4 matrix;
+        uniform ivec2 tile_size;
+        uniform vec2 atlas_ratio;
 
         out vec3 v_Color;
+        out vec2 v_TexCoords;
 
         void main() {
-            gl_Position = matrix * vec4(position + screen_position, 0.0, 1.0);
+            gl_Position = matrix * vec4(position * tile_size + screen_position, 0.0, 1.0);
+
+            float tile_offset_x = atlas_ratio.x * 2;
+            float tile_offset_y = 0.0;
+            float u = position.x * atlas_ratio.x + tile_offset_x;
+            float v = 1.0 - (position.y * atlas_ratio.y + tile_offset_y);
+            v_TexCoords = vec2(u, v);
+
             v_Color = color;
         }
     "#;
@@ -77,10 +90,14 @@ pub fn start() {
         #version 150
 
         in vec3 v_Color;
+        in vec2 v_TexCoords;
+
+        uniform sampler2D tex;
+
         out vec4 color;
 
         void main() {
-            color = vec4(v_Color, 1.0);
+            color = texture(tex, v_TexCoords) * vec4(v_Color, 1.0);
         }
     "#;
 
@@ -115,6 +132,9 @@ pub fn start() {
 
         let uniforms = uniform! {
             matrix: proj,
+            tile_size: [TILE_WIDTH, TILE_HEIGHT],
+            tex: atlas.texture(),
+            atlas_ratio: atlas.ratio(),
         };
 
         let instances = {
