@@ -22,8 +22,8 @@ impl System for MovementSystem {
         let (map_w, map_h, _) = data.map.size();
 
         for e in &data.entities {
-            if let Some(ref s0) = data.get_component::<components::Speed>(e) {
-                if let Some(ref p0) = data.get_component::<components::Position>(e) {
+            if let Some(ref s0) = data.components.get_component::<components::Speed>(e) {
+                if let Some(ref p0) = data.components.get_component::<components::Position>(e) {
                     let mut tile_x = p0.x as i32;
                     let mut tile_y = p0.y as i32;
 
@@ -86,8 +86,8 @@ impl System for MovementSystem {
         }
 
         for (e, speed, position) in result {
-            data.add_component(e, speed);
-            data.add_component(e, position);
+            data.components.add_component(e, speed);
+            data.components.add_component(e, position);
         }
     }
 }
@@ -99,8 +99,8 @@ impl System for LightingSystem {
         let mut result = Vec::new();
 
         for e in &data.entities {
-            if let Some(g) = data.get_component::<components::Glow>(e) {
-                if let Some(&components::Position { x, y, z }) = data.get_component::<components::Position>(e) {
+            if let Some(g) = data.components.get_component::<components::Glow>(e) {
+                if let Some(&components::Position { x, y, z }) = data.components.get_component::<components::Position>(e) {
                     // we got a omnidirectional light source
                     let r = g.radius;
                     let (lm_w, lm_h) = ((r * 2) + 1, (r * 2) + 1);
@@ -129,7 +129,7 @@ impl System for LightingSystem {
         }
 
         for (e, g) in result {
-            data.add_component(e, g);
+            data.components.add_component(e, g);
         }
     }
 }

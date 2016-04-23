@@ -6,6 +6,10 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 [profile.release]
 debug = true
 
+[dependencies.ecs]
+path = "ecs"
+version = "0.1.0"
+
 [dependencies.world]
 path = "world"
 version = "0.1.0"

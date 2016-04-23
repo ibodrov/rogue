@@ -1,12 +1,7 @@
 [package]
-name = "world"
+name = "ecs"
 version = "0.1.0"
 authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 
 [dependencies]
 rand = "*"
-time = "*"
-
-[dependencies.ecs]
-path = "../ecs"
-version = "0.1.0"

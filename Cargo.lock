@@ -2,6 +2,7 @@
 name = "rogue"
 version = "0.1.0"
 dependencies = [
+ "ecs 0.1.0",
  "tex_atlas 0.1.0",
  "ui 0.1.0",
  "world 0.1.0",
@@ -169,6 +170,13 @@ version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ecs"
+version = "0.1.0"
+dependencies = [
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -678,6 +686,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "world"
 version = "0.1.0"
 dependencies = [
+ "ecs 0.1.0",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
