@@ -44,9 +44,12 @@ impl World {
          */
         w.data.map.randomize(1, 0);
 
+        /*
         for x in 1..11 {
             add_bouncer(&mut w, x * 5, x * 5);
-        }
+        }*/
+
+        add_dwarf(&mut w, 10, 10);
 
         w
     }
@@ -111,5 +114,13 @@ pub fn add_bouncer(w: &mut World, x: u32, y: u32) {
         data.components.add_component(id, components::Speed::rand());
         //data.add_component(id, components::Visible::default());
         data.components.add_component(id, components::Glow::new(10));
+    });
+}
+
+pub fn add_dwarf(w: &mut World, x: u32, y: u32) {
+    let id = w.create_entity_id();
+    w.create_entity(id, |id, data| {
+        data.components.add_component(id, components::Visible::default());
+        data.components.add_component(id, components::Position { x: x, y: y, z: 0});
     });
 }

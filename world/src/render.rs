@@ -105,6 +105,10 @@ impl Renderable for World {
 
         // render entities
         for e in &self.data().entities {
+            render_visible(e, &self.data.components, &is_visible, &mut tiles,
+                           (n_start_x, n_start_y, n_start_z),
+                           (n_size_x, n_size_y, n_size_z));
+
             render_glow(e, &self.data.components, &is_visible, &mut tiles,
                         (n_start_x, n_start_y, n_start_z),
                         (n_size_x, n_size_y, n_size_z));
@@ -117,6 +121,29 @@ impl Renderable for World {
 
 type CheckFn = Fn(u32, u32, u32, u32) -> bool;
 
+fn render_visible(e: &super::ecs::EntityId,
+               cs: &super::ecs::Data,
+               is_visible: &CheckFn,
+               tiles: &mut Vec<tile::Tile>,
+               norm_view: (u32, u32, u32),
+               view_size: (u32, u32, u32)) {
+
+    use components::{Visible, Position};
+
+    if let Some((&Visible { mark }, &Position { x, y, z })) = cs.join::<Visible, Position>(e) {
+        if !is_visible(x, y, z, 0) {
+            return;
+        }
+
+        let (n_start_x, n_start_y, _) = norm_view;
+
+        let x = x - n_start_x;
+        let y = y - n_start_y;
+        let t = RenderedView::get_mut(tiles, view_size, x, y, z);
+        t.add_effect(tile::Effect::Marked(mark));
+    }
+}
+
 fn render_glow(e: &super::ecs::EntityId,
                cs: &super::ecs::Data,
                is_visible: &CheckFn,
@@ -127,7 +154,6 @@ fn render_glow(e: &super::ecs::EntityId,
     use components::{Glow, Position};
 
     if let Some((ref g, &Position { x, y, z })) = cs.join::<Glow, Position>(e) {
-        // we got a torch
         if !is_visible(x, y, z, g.radius) {
             return;
         }
