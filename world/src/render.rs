@@ -81,7 +81,7 @@ impl Renderable for World {
         let n_size_z = size(n_start_z, n_end_z);
 
         let max_tiles = (n_size_x * n_size_y * n_size_z) as usize;
-        let mut tiles = Vec::with_capacity(max_tiles);
+        let mut tiles = Vec::with_capacity(max_tiles + 1);
 
         for z in n_start_z..n_end_z {
             for y in n_start_y..n_end_y {
