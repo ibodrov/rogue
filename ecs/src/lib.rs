@@ -63,4 +63,14 @@ impl Data {
             v.remove(id);
         }
     }
+
+    pub fn join<C1: Any, C2: Any>(&self, id: &EntityId) -> Option<(&C1, &C2)> {
+        if let Some(c1) = self.get_component::<C1>(id) {
+            if let Some(c2) = self.get_component::<C2>(id) {
+                return Some((c1, c2));
+            }
+        }
+
+        None
+    }
 }
