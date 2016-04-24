@@ -35,7 +35,8 @@ impl World {
                 components: ecs::Data::new(),
             },
             systems: vec![Box::new(systems::LightingSystem),
-                          Box::new(systems::MovementSystem)],
+                          Box::new(systems::MovementSystem),
+                          Box::new(systems::KeyboardControlSystem::default())],
             last_timestamp: time::precise_time_s()
         };
 

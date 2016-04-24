@@ -1,13 +1,12 @@
 extern crate rand;
 
-use fov;
-
 use std::vec::Vec;
-
+use std::cell::RefCell;
+use std::collections::VecDeque;
 use super::WorldData;
-use components;
-
 use self::rand::Rng;
+use components;
+use fov;
 
 pub trait System {
     fn update(&mut self, data: &mut WorldData, time_dt: f64);
@@ -125,6 +124,62 @@ impl System for LightingSystem {
 
                     result.push((*e, g));
                 }
+            }
+        }
+
+        for (e, g) in result {
+            data.components.add_component(e, g);
+        }
+    }
+}
+
+pub enum KeyboardCommand {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+}
+
+pub struct KeyboardControlSystem {
+    queue: RefCell<VecDeque<KeyboardCommand>>,
+}
+
+impl Default for KeyboardControlSystem {
+    fn default() -> Self {
+        KeyboardControlSystem {
+            queue: RefCell::new(VecDeque::new()),
+        }
+    }
+}
+
+impl KeyboardControlSystem {
+    pub fn add(&mut self, cmd: KeyboardCommand) {
+        self.queue.borrow_mut().push_back(cmd);
+    }
+}
+
+impl System for KeyboardControlSystem {
+    fn update(&mut self, data: &mut WorldData, _: f64) {
+        let mut q = self.queue.borrow_mut();
+
+        if q.is_empty() {
+            return;
+        }
+
+        let cmd = q.pop_front().unwrap();
+
+        let mut result = Vec::new();
+
+        for e in &data.entities {
+            if let Some((_, &components::Position { mut x, mut y, z })) = data.components.join::<components::Controlled, components::Position>(e) {
+                match cmd {
+                    KeyboardCommand::UP => y -= 1,
+                    KeyboardCommand::DOWN => y += 1,
+                    KeyboardCommand::LEFT => x -= 1,
+                    KeyboardCommand::RIGHT => x += 1,
+                }
+
+                result.push((*e, components::Position { x: x, y: y, z: z }));
             }
         }
 

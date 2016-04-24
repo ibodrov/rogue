@@ -90,3 +90,10 @@ impl fmt::Debug for Glow {
     }
 }
 
+pub struct Controlled;
+
+impl Default for Controlled {
+    fn default() -> Self {
+        Controlled
+    }
+}
