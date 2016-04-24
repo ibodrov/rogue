@@ -7,8 +7,9 @@ pub mod tile;
 pub mod render;
 mod fov;
 mod circle_iter;
-mod systems;
+pub mod systems;
 
+use systems::System;
 use std::vec::Vec;
 use ecs::EntityId;
 
@@ -18,10 +19,26 @@ pub struct WorldData {
     pub components: ecs::Data,
 }
 
+pub struct Systems {
+    pub lightning: systems::LightingSystem,
+    pub movement: systems::MovementSystem,
+    pub control: systems::KeyboardControlSystem,
+}
+
+impl Default for Systems {
+    fn default() -> Self {
+        Systems {
+            lightning: systems::LightingSystem,
+            movement: systems::MovementSystem,
+            control: systems::KeyboardControlSystem::default(),
+        }
+    }
+}
+
 pub struct World {
     next_entity_id: u64,
     data: WorldData,
-    systems: Vec<Box<systems::System>>,
+    pub systems: Systems,
     last_timestamp: f64,
 }
 
@@ -34,9 +51,7 @@ impl World {
                 entities: Vec::new(),
                 components: ecs::Data::new(),
             },
-            systems: vec![Box::new(systems::LightingSystem),
-                          Box::new(systems::MovementSystem),
-                          Box::new(systems::KeyboardControlSystem::default())],
+            systems: Systems::default(),
             last_timestamp: time::precise_time_s()
         };
 
@@ -94,9 +109,9 @@ impl World {
         let dt = self.last_timestamp - current_timestamp;
         self.last_timestamp = current_timestamp;
 
-        for s in self.systems.iter_mut() {
-            s.update(&mut self.data, dt);
-        }
+        self.systems.lightning.update(&mut self.data, dt);
+        self.systems.movement.update(&mut self.data, dt);
+        self.systems.control.update(&mut self.data, dt);
     }
 }
 
@@ -123,5 +138,6 @@ pub fn add_dwarf(w: &mut World, x: u32, y: u32) {
     w.create_entity(id, |id, data| {
         data.components.add_component(id, components::Visible::default());
         data.components.add_component(id, components::Position { x: x, y: y, z: 0});
+        data.components.add_component(id, components::Controlled::default());
     });
 }

@@ -110,21 +110,32 @@ pub fn start() {
     let mut frames = 0;
 
     loop {
-        for ev in display.poll_events() {
-            match ev {
-                Event::Closed | Event::KeyboardInput(_, _, Some(VirtualKeyCode::Escape)) => return,
-                Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
-                    let scroll_speed = 10;
-                    match code {
-                        VirtualKeyCode::Up => view.y -= scroll_speed,
-                        VirtualKeyCode::Down => view.y += scroll_speed,
-                        VirtualKeyCode::Left => view.x -= scroll_speed,
-                        VirtualKeyCode::Right => view.x += scroll_speed,
-                        VirtualKeyCode::Space => world.data_mut().map.randomize(1, 0),
-                        _ => (),
-                    }
-                },
-                _ => (),
+        {
+            use world::systems::{KeyboardCommand};
+            let control = &mut world.systems.control;
+
+            for ev in display.poll_events() {
+                match ev {
+                    Event::Closed | Event::KeyboardInput(_, _, Some(VirtualKeyCode::Escape)) => return,
+                    Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
+                        let scroll_speed = 10;
+                        match code {
+                            VirtualKeyCode::Up => view.y -= scroll_speed,
+                            VirtualKeyCode::Down => view.y += scroll_speed,
+                            VirtualKeyCode::Left => view.x -= scroll_speed,
+                            VirtualKeyCode::Right => view.x += scroll_speed,
+
+                            VirtualKeyCode::W => control.add(KeyboardCommand::UP),
+                            VirtualKeyCode::S => control.add(KeyboardCommand::DOWN),
+                            VirtualKeyCode::A => control.add(KeyboardCommand::LEFT),
+                            VirtualKeyCode::D => control.add(KeyboardCommand::RIGHT),
+
+                            //VirtualKeyCode::Space => world.data_mut().map.randomize(1, 0),
+                            _ => (),
+                        }
+                    },
+                    _ => (),
+                }
             }
         }
 

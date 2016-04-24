@@ -133,6 +133,7 @@ impl System for LightingSystem {
     }
 }
 
+#[derive(Debug)]
 pub enum KeyboardCommand {
     UP,
     DOWN,
@@ -167,16 +168,26 @@ impl System for KeyboardControlSystem {
         }
 
         let cmd = q.pop_front().unwrap();
+        println!("POP: {:?}", cmd);
 
         let mut result = Vec::new();
 
         for e in &data.entities {
-            if let Some((_, &components::Position { mut x, mut y, z })) = data.components.join::<components::Controlled, components::Position>(e) {
+            if let Some((_, &components::Position { x: x0, y: y0, z })) = data.components.join::<components::Controlled, components::Position>(e) {
+
+                let mut x = x0;
+                let mut y = y0;
+
                 match cmd {
                     KeyboardCommand::UP => y -= 1,
                     KeyboardCommand::DOWN => y += 1,
                     KeyboardCommand::LEFT => x -= 1,
                     KeyboardCommand::RIGHT => x += 1,
+                }
+
+                let t = data.map.get_at(x, y, z);
+                if *t == 1 {
+                    continue;
                 }
 
                 result.push((*e, components::Position { x: x, y: y, z: z }));
