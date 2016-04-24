@@ -97,77 +97,85 @@ impl Renderable for World {
         debug_assert!(max_tiles == tiles.len(),
                       "Invalid size of the tiles vector. Expected: {}, actual: {}", max_tiles, tiles.len());
 
-        let is_visible = |x: u32, y: u32, r: u32| {
+        let is_visible = move |x: u32, y: u32, _z: u32, r: u32| {
             let (x, y, r) = (x as i32, y as i32, r as i32);
             let (m_sx, m_sy) = ((n_start_x as i32), (n_start_y as i32));
             let (m_ex, m_ey) = ((n_end_x as i32), (n_end_y as i32));
+            println!("{}, {}, {}", x, y, r);
             (x + r >= m_sx && x - r < m_ex) && (y + r >= m_sy && y - r < m_ey)
         };
 
         // render entities
         for e in &self.data().entities {
-            if let Some(&components::Visible { mark }) = self.data.components.get_component::<components::Visible>(e) {
-                if let Some(&components::Position { x, y, z }) = self.data.components.get_component::<components::Position>(e) {
-                    if is_visible(x, y, 1) {
-                        let t = RenderedView::get_mut(&mut tiles, (n_size_x, n_size_y, n_size_z), x, y, z);
-                        t.add_effect(tile::Effect::Marked(mark));
-                    }
-                }
-            }
+            render_glow(e, &self.data.components, &is_visible, &mut tiles,
+                        (n_start_x, n_start_y, n_start_z),
+                        (n_size_x, n_size_y, n_size_z));
 
-            if let Some(ref g) = self.data().components.get_component::<components::Glow>(e) {
-                if let Some(&components::Position { x, y, z }) = self.data().components.get_component::<components::Position>(e) {
-                    // we got a torch
-                    if !is_visible(x, y, g.radius) {
-                        continue;
-                    }
-
-                    let illum = |ts: &mut Vec<tile::Tile>, x: u32, y: u32, z: u32, lum: f32| {
-                        // TODO level?
-                        if x < n_start_x || x >= n_end_x ||
-                            y < n_start_y || y >= n_end_y ||
-                            z < n_start_z || z >= n_end_z {
-                            return;
-                        }
-
-                        let x = x - n_start_x;
-                        let y = y - n_start_y;
-                        let t = RenderedView::get_mut(ts, (n_size_x, n_size_y, n_size_z), x, y, z);
-                        t.add_effect(tile::Effect::Lit(lum));
-                    };
-
-                    let (lm_w, lm_h) = g.light_map_size;
-
-                    for j in 0..lm_h {
-                        for i in 0..lm_w {
-                            let o = g.get_at(i, j);
-                            if o >= 1.0 {
-                                continue;
-                            }
-
-                            if x + i < lm_w / 2 || y + j < lm_h / 2 {
-                                continue;
-                            }
-
-                            let mx = x + i - lm_w / 2;
-                            let my = y + j - lm_h / 2;
-
-                            fn fade(x1: u32, y1: u32, x2: u32, y2: u32, _r: u32) -> f32 {
-                                let (x1, y1) = (x1 as i32, y1 as i32);
-                                let (x2, y2) = (x2 as i32, y2 as i32);
-                                let dt = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32;
-                                1.0 / (1.0 + dt.sqrt())
-                            }
-
-                            let coeff = fade(x, y, mx, my, g.radius);
-                            let lum = 1.0 * (1.0 - o) * coeff;
-                            illum(&mut tiles, mx, my, z, lum);
-                        }
-                    }
-                }
-            }
         }
 
         RenderedView { size: (n_size_x, n_size_y, n_size_z), tiles: tiles }
+    }
+}
+
+type CheckFn = Fn(u32, u32, u32, u32) -> bool;
+
+fn render_glow(e: &super::ecs::EntityId,
+               cs: &super::ecs::Data,
+               is_visible: &CheckFn,
+               tiles: &mut Vec<tile::Tile>,
+               norm_view: (u32, u32, u32),
+               view_size: (u32, u32, u32)) {
+
+    if let Some(ref g) = cs.get_component::<components::Glow>(e) {
+        if let Some(&components::Position { x, y, z }) = cs.get_component::<components::Position>(e) {
+            // we got a torch
+            if !is_visible(x, y, z, g.radius) {
+                return;
+            }
+
+            let (n_start_x, n_start_y, _) = norm_view;
+            let (n_size_x, n_size_y, n_size_z) = view_size;
+
+            let illum = |ts: &mut Vec<tile::Tile>, x: u32, y: u32, z: u32, lum: f32| {
+                // TODO level?
+                if !is_visible(x, y, z, 0) {
+                    return;
+                }
+
+                let x = x - n_start_x;
+                let y = y - n_start_y;
+                let t = RenderedView::get_mut(ts, (n_size_x, n_size_y, n_size_z), x, y, z);
+                t.add_effect(tile::Effect::Lit(lum));
+            };
+
+            let (lm_w, lm_h) = g.light_map_size;
+
+            for j in 0..lm_h {
+                for i in 0..lm_w {
+                    let o = g.get_at(i, j);
+                    if o >= 1.0 {
+                        continue;
+                    }
+
+                    if x + i < lm_w / 2 || y + j < lm_h / 2 {
+                        continue;
+                    }
+
+                    let mx = x + i - lm_w / 2;
+                    let my = y + j - lm_h / 2;
+
+                    fn fade(x1: u32, y1: u32, x2: u32, y2: u32, _r: u32) -> f32 {
+                        let (x1, y1) = (x1 as i32, y1 as i32);
+                        let (x2, y2) = (x2 as i32, y2 as i32);
+                        let dt = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32;
+                        1.0 / (1.0 + dt.sqrt())
+                    }
+
+                    let coeff = fade(x, y, mx, my, g.radius);
+                    let lum = 1.0 * (1.0 - o) * coeff;
+                    illum(tiles, mx, my, z, lum);
+                }
+            }
+        }
     }
 }
