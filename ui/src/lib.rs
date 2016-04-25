@@ -113,7 +113,6 @@ pub fn start() {
     loop {
         {
             use world::systems::{KeyboardCommand};
-            let control = &mut world.systems.control;
 
             for ev in display.poll_events() {
                 match ev {
@@ -138,12 +137,24 @@ pub fn start() {
                                 }
                             },
 
-                            VirtualKeyCode::W => control.add(KeyboardCommand::UP),
-                            VirtualKeyCode::S => control.add(KeyboardCommand::DOWN),
-                            VirtualKeyCode::A => control.add(KeyboardCommand::LEFT),
-                            VirtualKeyCode::D => control.add(KeyboardCommand::RIGHT),
+                            VirtualKeyCode::W => {
+                                let control = &mut world.systems.control;
+                                control.add(KeyboardCommand::UP);
+                            },
+                            VirtualKeyCode::S => {
+                                let control = &mut world.systems.control;
+                                control.add(KeyboardCommand::DOWN);
+                            },
+                            VirtualKeyCode::A => {
+                                let control = &mut world.systems.control;
+                                control.add(KeyboardCommand::LEFT);
+                            },
+                            VirtualKeyCode::D => {
+                                let control = &mut world.systems.control;
+                                control.add(KeyboardCommand::RIGHT);
+                            },
 
-                            //VirtualKeyCode::Space => world.data_mut().map.randomize(1, 0),
+                            VirtualKeyCode::Space => world.data_mut().map.randomize(1, 0),
                             _ => (),
                         }
                     },
