@@ -42,15 +42,9 @@ impl RenderedView {
 
         &mut tiles[n]
     }
-}
 
-pub trait Renderable {
-    fn render(&self, view: &View) -> RenderedView;
-}
-
-impl Renderable for World {
-    fn render(&self, view: &View) -> RenderedView {
-        let map = &self.data().map;
+    pub fn render(world: &World, view: &View) -> RenderedView {
+        let map = &world.data().map;
 
         let (view_x, view_y, view_z) = view.position;
         let (view_x_size, view_y_size, view_z_size) = view.size;
@@ -108,12 +102,12 @@ impl Renderable for World {
         };
 
         // render entities
-        for e in &self.data().entities {
-            render_visible(e, &self.data.components, &is_visible, &mut tiles,
+        for e in &world.data().entities {
+            render_visible(e, &world.data.components, &is_visible, &mut tiles,
                            (n_start_x, n_start_y, n_start_z),
                            (n_size_x, n_size_y, n_size_z));
 
-            render_glow(e, &self.data.components, &is_visible, &mut tiles,
+            render_glow(e, &world.data.components, &is_visible, &mut tiles,
                         (n_start_x, n_start_y, n_start_z),
                         (n_size_x, n_size_y, n_size_z));
 

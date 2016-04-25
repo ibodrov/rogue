@@ -5,8 +5,6 @@ extern crate time;
 extern crate world;
 extern crate tex_atlas;
 
-use world::render::Renderable;
-
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
 const TILE_WIDTH: i32 = 8;
@@ -189,7 +187,7 @@ pub fn start() {
                 // smooth scrolling support
                 let (view_dx, view_dy) = get_view_delta(&view);
 
-                let render = world.render(&world_view);
+                let render = world::render::RenderedView::render(&world, &world_view);
                 let mut v = Vec::with_capacity(render.tiles_count() as usize);
 
                 for (x, y, _, tile) in render.iter() {
