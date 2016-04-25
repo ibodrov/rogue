@@ -96,7 +96,11 @@ impl Renderable for World {
         debug_assert!(max_tiles == tiles.len(),
                       "Invalid size of the tiles vector. Expected: {}, actual: {}", max_tiles, tiles.len());
 
-        let is_visible = move |x: u32, y: u32, _z: u32, r: u32| {
+        let is_visible = move |x: u32, y: u32, z: u32, r: u32| {
+            if z < n_start_z || z >= n_end_z {
+                return false;
+            }
+
             let (x, y, r) = (x as i32, y as i32, r as i32);
             let (m_sx, m_sy) = ((n_start_x as i32), (n_start_y as i32));
             let (m_ex, m_ey) = ((n_end_x as i32), (n_end_y as i32));

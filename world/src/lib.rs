@@ -47,7 +47,7 @@ impl World {
         let mut w = World {
             next_entity_id: 0,
             data: WorldData {
-                map: map::Map::new(128, 128, 0),
+                map: map::Map::new(128, 128, 3, 0),
                 entities: Vec::new(),
                 components: ecs::Data::new(),
             },

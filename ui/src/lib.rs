@@ -30,6 +30,7 @@ implement_vertex!(Instance, screen_position, color);
 struct View {
     x: i32,
     y: i32,
+    z: i32,
 }
 
 const QUAD_INDICES: &'static [u16] = &[0u16, 1, 2, 1, 3, 2];
@@ -104,7 +105,7 @@ pub fn start() {
     let program = glium::Program::from_source(&display, &vertex_shader, &fragment_shader, None).unwrap();
     let proj: [[f32; 4]; 4] = cgmath::ortho(0.0, SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32, 0.0, -1.0, 1.0).into();
 
-    let mut view = View { x: 0, y: 0 };
+    let mut view = View { x: 0, y: 0, z: 0 };
 
     let mut t0 = time::precise_time_s();
     let mut frames = 0;
@@ -124,6 +125,18 @@ pub fn start() {
                             VirtualKeyCode::Down => view.y += scroll_speed,
                             VirtualKeyCode::Left => view.x -= scroll_speed,
                             VirtualKeyCode::Right => view.x += scroll_speed,
+                            VirtualKeyCode::Comma => {
+                                view.z -= 1;
+                                if view.z < 0 {
+                                    view.z = 0;
+                                }
+                            },
+                            VirtualKeyCode::Period => {
+                                view.z += 1;
+                                if view.z >= 3 {
+                                    view.z = 2;
+                                }
+                            },
 
                             VirtualKeyCode::W => control.add(KeyboardCommand::UP),
                             VirtualKeyCode::S => control.add(KeyboardCommand::DOWN),
@@ -153,7 +166,7 @@ pub fn start() {
                 let world_view = {
                     let x = view.x / TILE_WIDTH;
                     let y = view.y / TILE_HEIGHT;
-                    let z = 0;
+                    let z = view.z;
 
                     let sx = SCREEN_WIDTH / TILE_WIDTH as u32 + 1;
                     let sy = SCREEN_HEIGHT / TILE_HEIGHT as u32 + 1;
@@ -199,7 +212,7 @@ pub fn start() {
 }
 
 fn get_view_delta(v: &View) -> (i32, i32) {
-    let &View { mut x, mut y } = v;
+    let &View { mut x, mut y, .. } = v;
 
     if x > 0 {
         x = -(x % TILE_WIDTH);

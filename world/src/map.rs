@@ -10,12 +10,10 @@ pub struct Map<T: Clone + Copy> {
 }
 
 impl<T: Clone + Copy> Map<T> {
-    pub fn new(x_size: u32, y_size: u32, v: T) -> Self {
-        let levels = 1;
-
+    pub fn new(x_size: u32, y_size: u32, z_size: u32, v: T) -> Self {
         Map {
-            size: (x_size, y_size, levels),
-            data: (0..x_size * y_size * levels).map(|_| v).collect(),
+            size: (x_size, y_size, z_size),
+            data: (0..x_size * y_size * z_size).map(|_| v).collect(),
         }
     }
 
@@ -50,42 +48,43 @@ impl<T: Clone + Copy> Map<T> {
     }
 
     pub fn randomize(&mut self, wall: T, nothing: T) {
-        let (mw, mh, _) = self.size();
+        let (mx, my, mz) = self.size();
         let mut rng = rand::thread_rng();
 
         // clear
         self.fill(nothing);
 
-        // top and bottom wall
-        for x in 0..mw {
-            self.set_at(x, 0, 0, wall);
-            self.set_at(x, mh - 1, 0, wall);
-        }
+        for z in 0..mz {
+            // top and bottom wall
+            for x in 0..mx {
+                self.set_at(x, 0, z, wall);
+                self.set_at(x, my - 1, z, wall);
+            }
 
-        // left and right wall
-        for y in 0..mh {
-            self.set_at(0, y, 0, wall);
-            self.set_at(mw - 1, y, 0, wall);
-        }
+            // left and right wall
+            for y in 0..my {
+                self.set_at(0, y, z, wall);
+                self.set_at(mx - 1, y, z, wall);
+            }
 
-        // random boxes
-        let cnt = 100;
-        for _ in 0..cnt {
-            let x = rng.gen_range(1, mw - 1);
-            let y = rng.gen_range(1, mh - 1);
-            let w = rng.gen_range(2, 5);
-            let h = rng.gen_range(2, 5);
+            // random boxes
+            let cnt = 100;
+            for _ in 0..cnt {
+                let x = rng.gen_range(1, mx - 1);
+                let y = rng.gen_range(1, my - 1);
+                let w = rng.gen_range(2, 5);
+                let h = rng.gen_range(2, 5);
 
-            for j in y..y+h {
-                for i in x..x+w {
-                    if i >= mw || j >= mh {
-                        continue;
+                for j in y..y+h {
+                    for i in x..x+w {
+                        if i >= mx || j >= my {
+                            continue;
+                        }
+
+                        self.set_at(i, j, z, wall);
                     }
-
-                    self.set_at(i, j, 0, wall);
                 }
             }
         }
-
     }
 }
