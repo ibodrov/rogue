@@ -168,7 +168,6 @@ impl System for KeyboardControlSystem {
         }
 
         let cmd = q.pop_front().unwrap();
-        println!("POP: {:?}", cmd);
 
         let mut result = Vec::new();
 
