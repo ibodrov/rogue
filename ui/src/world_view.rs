@@ -36,7 +36,7 @@ const QUAD: &'static [Vertex] = &[
     Vertex { position: [1, 0], },
 ];
 
-pub struct WorldView {
+pub struct WorldUI {
     atlas: tex_atlas::TextureAtlas,
     vertex_buffer: glium::VertexBuffer<Vertex>,
     index_buffer: glium::IndexBuffer<u16>,
@@ -44,61 +44,22 @@ pub struct WorldView {
     pub view: View,
 }
 
-impl WorldView {
-    pub fn new<F: glium::backend::Facade>(display: &F) -> WorldView {
+impl WorldUI {
+    pub fn new<F: glium::backend::Facade>(display: &F) -> WorldUI {
         let atlas = tex_atlas::load(display, std::path::Path::new("tiles.png")).unwrap();
 
         let vertex_buffer = glium::VertexBuffer::new(display, &QUAD).unwrap();
-
         let index_buffer = glium::IndexBuffer::new(display,
                                                    glium::index::PrimitiveType::TrianglesList,
                                                    QUAD_INDICES).unwrap();
 
-        let vertex_shader = r#"
-        #version 150
-
-        in ivec2 position;
-        in ivec2 screen_position;
-        in vec3 color;
-
-        uniform mat4 matrix;
-        uniform ivec2 tile_size;
-        uniform vec2 atlas_ratio;
-
-        out vec3 v_Color;
-        out vec2 v_TexCoords;
-
-        void main() {
-            gl_Position = matrix * vec4(position * tile_size + screen_position, 0.0, 1.0);
-
-            float tile_offset_x = atlas_ratio.x * 2;
-            float tile_offset_y = 0.0;
-            float u = position.x * atlas_ratio.x + tile_offset_x;
-            float v = 1.0 - (position.y * atlas_ratio.y + tile_offset_y);
-            v_TexCoords = vec2(u, v);
-
-            v_Color = color;
-        }"#;
-
-        let fragment_shader = r#"
-        #version 150
-
-        in vec3 v_Color;
-        in vec2 v_TexCoords;
-
-        uniform sampler2D tex;
-
-        out vec4 color;
-
-        void main() {
-            color = texture(tex, v_TexCoords) * vec4(v_Color, 1.0);
-        }"#;
-
+        let vertex_shader = include_str!("shaders/tile_map.vert");
+        let fragment_shader = include_str!("shaders/tile_map.frag");
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
         let view = View { x: 0, y: 0, z: 0 };
 
-        WorldView {
+        WorldUI {
             atlas: atlas,
             vertex_buffer: vertex_buffer,
             index_buffer: index_buffer,
@@ -107,8 +68,13 @@ impl WorldView {
         }
     }
 
-    pub fn render<F: glium::backend::Facade, S: glium::Surface>(&self, display: &F, target: &mut S, screen_size: (u32, u32), world: &world::World) {
-        let proj: [[f32; 4]; 4] = cgmath::ortho(0.0, screen_size.0 as f32, screen_size.1 as f32, 0.0, -1.0, 1.0).into();
+    pub fn render<F, S>(&self, display: &F, target: &mut S, screen_size: (u32, u32), world: &world::World)
+        where F: glium::backend::Facade, S: glium::Surface {
+
+        let (w, h) = (screen_size.0 as f32, screen_size.1 as f32);
+        let proj: [[f32; 4]; 4] = cgmath::ortho( 0.0,    w,         // left, right
+                                                   h,  0.0,         // bottom, top
+                                                -1.0,  1.0).into(); // near, far
 
         let uniforms = uniform! {
             matrix: proj,
@@ -153,14 +119,12 @@ impl WorldView {
             glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()
         };
 
-        {
-            target.clear_color(0.0, 0.0, 0.0, 1.0);
-            target.draw((&self.vertex_buffer, instances.per_instance().unwrap()),
-                        &self.index_buffer,
-                        &self.program,
-                        &uniforms,
-                        &Default::default()).unwrap();
-        }
+        target.clear_color(0.0, 0.0, 0.0, 1.0);
+        target.draw((&self.vertex_buffer, instances.per_instance().unwrap()),
+                    &self.index_buffer,
+                    &self.program,
+                    &uniforms,
+                    &Default::default()).unwrap();
     }
 }
 

@@ -21,7 +21,7 @@ pub fn start() {
         .build_glium()
         .unwrap();
 
-    let mut world_view = world_view::WorldView::new(&display);
+    let mut world_view = world_view::WorldUI::new(&display);
 
     let mut t0 = time::precise_time_s();
     let mut frames = 0;
