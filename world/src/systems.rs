@@ -1,7 +1,6 @@
 extern crate rand;
 
 use std::vec::Vec;
-use std::cell::RefCell;
 use std::collections::VecDeque;
 use super::WorldData;
 use self::rand::Rng;
@@ -142,26 +141,26 @@ pub enum KeyboardCommand {
 }
 
 pub struct KeyboardControlSystem {
-    queue: RefCell<VecDeque<KeyboardCommand>>,
+    queue: VecDeque<KeyboardCommand>,
 }
 
 impl Default for KeyboardControlSystem {
     fn default() -> Self {
         KeyboardControlSystem {
-            queue: RefCell::new(VecDeque::new()),
+            queue: VecDeque::new(),
         }
     }
 }
 
 impl KeyboardControlSystem {
     pub fn add(&mut self, cmd: KeyboardCommand) {
-        self.queue.borrow_mut().push_back(cmd);
+        self.queue.push_back(cmd);
     }
 }
 
 impl System for KeyboardControlSystem {
     fn update(&mut self, data: &mut WorldData, _: f64) {
-        let mut q = self.queue.borrow_mut();
+        let q = &mut self.queue;
 
         if q.is_empty() {
             return;
