@@ -83,41 +83,7 @@ impl WorldUI {
             atlas_ratio: self.atlas.ratio(),
         };
 
-        let instances = {
-            let data = {
-                let view = &self.view;
-
-                let world_view = {
-                    let x = view.x / TILE_WIDTH;
-                    let y = view.y / TILE_HEIGHT;
-                    let z = view.z;
-
-                    let sx = screen_size.0 / TILE_WIDTH as u32 + 1;
-                    let sy = screen_size.1 / TILE_HEIGHT as u32 + 1;
-                    let sz = 1;
-
-                    world::render::View::new((x, y, z), (sx, sy, sz))
-                };
-
-                // smooth scrolling support
-                let (view_dx, view_dy) = get_view_delta(&view);
-
-                let render = world::render::RenderedView::render(&world, &world_view);
-                let mut v = Vec::with_capacity(render.tiles_count() as usize);
-
-                for (x, y, _, tile) in render.iter() {
-                    let x = x as i32 * TILE_WIDTH + view_dx;
-                    let y = y as i32 * TILE_HEIGHT + view_dy;
-
-                    let color = calculate_color(&tile);
-                    v.push(Instance { screen_position: [x, y], color: color });
-                }
-
-                v
-            };
-
-            glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()
-        };
+        let instances = create_instances(display, screen_size, &self.view, world);
 
         target.clear_color(0.0, 0.0, 0.0, 1.0);
         target.draw((&self.vertex_buffer, instances.per_instance().unwrap()),
@@ -126,6 +92,41 @@ impl WorldUI {
                     &uniforms,
                     &Default::default()).unwrap();
     }
+}
+
+fn create_instances<F>(display: &F, screen_size: (u32, u32), view: &View, world: &world::World) -> glium::VertexBuffer<Instance>
+    where F: glium::backend::Facade {
+    let data = {
+        let world_view = {
+            let x = view.x / TILE_WIDTH;
+            let y = view.y / TILE_HEIGHT;
+            let z = view.z;
+
+            let sx = screen_size.0 / TILE_WIDTH as u32 + 1;
+            let sy = screen_size.1 / TILE_HEIGHT as u32 + 1;
+            let sz = 1;
+
+            world::render::View::new((x, y, z), (sx, sy, sz))
+        };
+
+        // smooth scrolling support
+        let (view_dx, view_dy) = get_view_delta(&view);
+
+        let render = world::render::RenderedView::render(&world, &world_view);
+        let mut v = Vec::with_capacity(render.tiles_count() as usize);
+
+        for (x, y, _, tile) in render.iter() {
+            let x = x as i32 * TILE_WIDTH + view_dx;
+            let y = y as i32 * TILE_HEIGHT + view_dy;
+
+            let color = calculate_color(&tile);
+            v.push(Instance { screen_position: [x, y], color: color });
+        }
+
+        v
+    };
+
+    glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()
 }
 
 fn get_view_delta(v: &View) -> (i32, i32) {
