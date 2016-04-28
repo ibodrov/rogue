@@ -53,8 +53,8 @@ impl WorldUI {
                                                    glium::index::PrimitiveType::TrianglesList,
                                                    QUAD_INDICES).unwrap();
 
-        let vertex_shader = include_str!("shaders/tile_map.vert");
-        let fragment_shader = include_str!("shaders/tile_map.frag");
+        let vertex_shader = include_str!("shaders/world_view.vert");
+        let fragment_shader = include_str!("shaders/world_view.frag");
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
         let view = View { x: 0, y: 0, z: 0 };
