@@ -1,90 +1,120 @@
-extern crate rand;
+use std::ops::{Index, IndexMut};
+use chan;
 
-use std::vec::Vec;
-use self::rand::Rng;
+pub type Cell = u8;
 
-pub struct Map<T: Clone + Copy> {
-    // dimensions of the cells vector (x, y, z)
+#[derive(Clone)]
+pub struct MapChunk {
+    position: (u32, u32, u32),
     size: (u32, u32, u32),
-    data: Vec<T>,
+    data: Vec<Cell>,
 }
 
-impl<T: Clone + Copy> Map<T> {
-    pub fn new(x_size: u32, y_size: u32, z_size: u32, v: T) -> Self {
+impl MapChunk {
+    pub fn new(position: (u32, u32, u32), size: (u32, u32, u32), v: Cell) -> Self {
+        MapChunk {
+            position: position,
+            size: size,
+            data: (0..size.0 * size.1 * size.2).map(|_| v).collect(),
+        }
+    }
+
+    fn is_inside(&self, coords: (u32, u32, u32)) -> bool {
+        let (sx, sy, sz) = self.size;
+        coords.0 < sx && coords.1 < sy && coords.2 < sz
+    }
+
+    fn idx(&self, coords: (u32, u32, u32)) -> usize {
+        let (sx, sy, _) = self.size;
+        (coords.0 + coords.1 * sx + coords.2 * sx * sy) as usize
+    }
+}
+
+impl Index<(u32, u32, u32)> for MapChunk {
+    type Output = Cell;
+
+    fn index<'a>(&'a self, coords: (u32, u32, u32)) -> &'a Cell {
+        debug_assert!(self.is_inside(coords),
+                      "Invalid coordinates. Size: {:?}, coordinates: {:?}", self.size, coords);
+
+        let idx = self.idx(coords);
+        &self.data[idx]
+    }
+}
+
+impl IndexMut<(u32, u32, u32)> for MapChunk {
+    fn index_mut<'a>(&'a mut self, coords: (u32, u32, u32)) -> &'a mut Cell {
+        debug_assert!(self.is_inside(coords),
+                      "Invalid coordinates. Size: {:?}, coordinates: {:?}", self.size, coords);
+
+        let idx = self.idx(coords);
+        &mut self.data[idx]
+    }
+}
+
+#[derive(Clone)]
+pub struct Map {
+    chunk: MapChunk,
+    sender: chan::Sender<MapChunk>,
+    receiver: chan::Receiver<MapChunk>,
+}
+
+impl Map {
+    pub fn new(size: (u32, u32, u32), v: Cell) -> Self {
+        let (sender, receiver) = chan::async();
+
         Map {
-            size: (x_size, y_size, z_size),
-            data: (0..x_size * y_size * z_size).map(|_| v).collect(),
+            chunk: MapChunk::new((0, 0, 0), size, v),
+            sender: sender,
+            receiver: receiver,
         }
     }
 
-    pub fn is_inside(&self, x: u32, y: u32, level: u32) -> bool {
-        let (dx, dy, dz) = self.size;
-        x < dx && y < dy && level < dz
-    }
+    pub fn apply_updates(&mut self) {
+        let dst = &mut self.chunk;
+        let recv = &mut self.receiver;
 
-    fn idx(&self, x: u32, y: u32, level: u32) -> usize {
-        let (dx, dy, _) = self.size;
-        debug_assert!(self.is_inside(x, y, level), "Invalid map coordinates. Size: {:?}, coordinates: {}, {}, {}", self.size, x, y, level);
-        (x + y * dx + level * dx * dy) as usize
-    }
+        loop {
+            chan_select! {
+                default => {
+                    break;
+                },
 
-    pub fn get_at(&self, x: u32, y: u32, level: u32) -> &T {
-        &self.data[self.idx(x, y, level)]
-    }
+                recv.recv() -> val => {
+                    if let Some(src) = val {
+                        let (px, py, pz) = src.position;
+                        let (sx, sy, sz) = src.size;
 
-    fn set_at(&mut self, x: u32, y: u32, level: u32, v: T) {
-        let idx = self.idx(x, y, level);
-        self.data[idx] = v;
-    }
-
-    fn fill(&mut self, v: T) {
-        for i in self.data.iter_mut() {
-            *i = v;
-        }
-    }
-
-    pub fn size(&self) -> (u32, u32, u32) {
-        self.size
-    }
-
-    pub fn randomize(&mut self, wall: T, nothing: T) {
-        let (mx, my, mz) = self.size();
-        let mut rng = rand::thread_rng();
-
-        // clear
-        self.fill(nothing);
-
-        for z in 0..mz {
-            // top and bottom wall
-            for x in 0..mx {
-                self.set_at(x, 0, z, wall);
-                self.set_at(x, my - 1, z, wall);
-            }
-
-            // left and right wall
-            for y in 0..my {
-                self.set_at(0, y, z, wall);
-                self.set_at(mx - 1, y, z, wall);
-            }
-
-            // random boxes
-            let cnt = 100;
-            for _ in 0..cnt {
-                let x = rng.gen_range(1, mx - 1);
-                let y = rng.gen_range(1, my - 1);
-                let w = rng.gen_range(2, 5);
-                let h = rng.gen_range(2, 5);
-
-                for j in y..y+h {
-                    for i in x..x+w {
-                        if i >= mx || j >= my {
-                            continue;
+                        // TODO optimize
+                        for z in pz..pz + sz {
+                            for y in py..py + sy {
+                                for x in px..px + sx {
+                                    dst[(x, y, z)] = src[(x - px, y - py, z - pz)];
+                                }
+                            }
                         }
-
-                        self.set_at(i, j, z, wall);
                     }
-                }
+                },
             }
         }
+    }
+
+    pub fn update(&mut self, chunk: MapChunk) {
+        self.sender.send(chunk);
+        self.apply_updates();
+    }
+}
+
+impl Index<(u32, u32, u32)> for Map {
+    type Output = Cell;
+
+    fn index<'a>(&'a self, coords: (u32, u32, u32)) -> &'a Cell {
+        &self.chunk[coords]
+    }
+}
+
+impl IndexMut<(u32, u32, u32)> for Map {
+    fn index_mut<'a>(&'a mut self, coords: (u32, u32, u32)) -> &'a mut Cell {
+        &mut self.chunk[coords]
     }
 }

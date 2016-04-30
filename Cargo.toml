@@ -1,21 +1,18 @@
 [package]
-name = "rogue"
+name = "rogue2"
 version = "0.1.0"
 authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 
-[profile.release]
-debug = true
+[dependencies]
+specs = "*"
+chan = "*"
 
-[dependencies.ecs]
-path = "ecs"
+[dependencies.tex_atlas]
+path = "tex_atlas"
 version = "0.1.0"
 
 [dependencies.world]
 path = "world"
-version = "0.1.0"
-
-[dependencies.tex_atlas]
-path = "tex_atlas"
 version = "0.1.0"
 
 [dependencies.ui]

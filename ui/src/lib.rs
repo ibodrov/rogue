@@ -6,7 +6,6 @@ extern crate world;
 extern crate tex_atlas;
 extern crate rand;
 
-mod world_view;
 mod tile_map;
 
 use tile_map::Renderable;
