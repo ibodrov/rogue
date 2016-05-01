@@ -30,7 +30,7 @@ pub fn start() {
 
     let tile_size = (8, 10);
     let map_size = (SCREEN_WIDTH / tile_size.0, SCREEN_HEIGHT / tile_size.1);
-    let mut tile_map = tile_map::TileMap::new(&display, tile_size, map_size, (SCREEN_WIDTH, SCREEN_HEIGHT), tex_atlas);
+    let mut tile_map = tile_map::TileMap::new(&display, (SCREEN_WIDTH, SCREEN_HEIGHT), map_size, tex_atlas);
 
     let mut t0 = time::precise_time_s();
     let mut frames = 0;

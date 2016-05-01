@@ -34,9 +34,6 @@ impl Default for Tile {
 }
 
 pub struct TileMap {
-    /// size of the individual tile (in px)
-    tile_size: (u32, u32),
-
     /// size of the map (in tiles)
     map_size: (u32, u32),
 
@@ -54,8 +51,9 @@ pub struct TileMap {
 }
 
 impl TileMap {
-    pub fn new<F>(display: &F, tile_size: (u32, u32), map_size: (u32, u32), view_size: (u32, u32),
+    pub fn new<F>(display: &F, view_size: (u32, u32), map_size: (u32, u32),
                   tex_atlas: tex_atlas::TextureAtlas) -> Self
+
         where F: glium::backend::Facade {
 
         use glium::index::PrimitiveType;
@@ -71,7 +69,6 @@ impl TileMap {
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
         TileMap {
-            tile_size: tile_size,
             map_size: map_size,
             view_size: view_size,
             tiles: tiles,
@@ -94,7 +91,7 @@ impl TileMap {
     fn create_instances<F>(&self, display: &F) -> glium::VertexBuffer<Instance>
         where F: glium::backend::Facade {
 
-        let (tw, th) = self.tile_size;
+        let (tw, th) = self.tex_atlas.tile_size();
         let (mw, _) = self.map_size;
         let (ac, _) = self.tex_atlas.tile_count();
         let r = self.tex_atlas.ratio();
@@ -128,7 +125,7 @@ impl Renderable for TileMap {
 
         let uniforms = uniform! {
             matrix: proj,
-            tile_size: self.tile_size,
+            tile_size: self.tex_atlas.tile_size(),
             tex: self.tex_atlas.texture(),
             tex_ratio: self.tex_atlas.ratio(),
         };
