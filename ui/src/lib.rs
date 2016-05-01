@@ -26,7 +26,7 @@ pub fn start() {
         .unwrap();
 
     //let mut world_view = world_view::WorldUI::new(&display);
-    let tex_atlas = tex_atlas::load(&display, std::path::Path::new("tiles.png")).unwrap();
+    let tex_atlas = tex_atlas::load(&display, std::path::Path::new("assets/atlas.toml")).unwrap();
 
     let tile_size = (8, 10);
     let map_size = (SCREEN_WIDTH / tile_size.0, SCREEN_HEIGHT / tile_size.1);

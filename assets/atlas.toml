@@ -1,0 +1,3 @@
+file="assets/tiles.png"
+tile_size=[8, 10]
+tile_count=[16, 16]
