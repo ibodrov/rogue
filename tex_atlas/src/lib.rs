@@ -66,22 +66,6 @@ impl TextureAtlas {
     }
 }
 
-/*
-pub fn _load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, TextureAtlasError> {
-    let img = try!(image::open(path)).to_rgba();
-    let dimensions = img.dimensions();
-
-    let img = glium::texture::RawImage2d::from_raw_rgba_reversed(img.into_raw(), dimensions);
-    let tex = try!(Texture2d::new(display, img));
-
-    Ok(TextureAtlas {
-        tex: tex,
-        tex_size: dimensions,
-        tile_count: (16, 16),
-    })
-}
-*/
-
 pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, TextureAtlasError> {
     use std::fs::File;
     use std::io::Read;
