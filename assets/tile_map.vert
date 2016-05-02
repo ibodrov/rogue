@@ -10,9 +10,9 @@ uniform mat4 matrix;
 uniform uvec2 tile_size;
 uniform vec2 tex_ratio;
 
-out vec2 v_TexCoords;
-out vec4 v_FgColor;
-out vec3 v_BgColor;
+out highp vec2 v_TexCoords;
+out lowp vec4 v_FgColor;
+out lowp vec3 v_BgColor;
 
 void main() {
   gl_Position = matrix * vec4(position * tile_size + screen_position, 0.0, 1.0);

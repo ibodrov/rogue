@@ -1,12 +1,12 @@
 #version 150
 
-in vec2 v_TexCoords;
-in vec4 v_FgColor;
-in vec3 v_BgColor;
+in highp vec2 v_TexCoords;
+in lowp vec4 v_FgColor;
+in lowp vec3 v_BgColor;
 
-uniform sampler2D tex;
+uniform lowp sampler2D tex;
 
-out vec4 color;
+out lowp vec4 color;
 
 void main() {
   vec4 c1 = texture(tex, v_TexCoords) * v_FgColor;

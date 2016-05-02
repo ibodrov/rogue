@@ -46,6 +46,7 @@ impl Default for Tile {
 pub struct TileMap<'a> {
     /// size of the map (in tiles)
     size: (u32, u32),
+    visible_tile_size: (u32, u32),
 
     /// state of the map
     tiles: Vec<Tile>,
@@ -55,6 +56,7 @@ pub struct TileMap<'a> {
     program: glium::Program,
 
     tex_atlas: &'a tex_atlas::TextureAtlas,
+    tex_disable_smoothing: bool,
 }
 
 fn read_string(path: &str) -> String {
@@ -68,7 +70,7 @@ fn read_string(path: &str) -> String {
 }
 
 impl<'a> TileMap<'a> {
-    pub fn new<F>(display: &F, size: (u32, u32), tex_atlas: &'a tex_atlas::TextureAtlas) -> Self
+    pub fn new<F>(display: &F, size: (u32, u32), visible_tile_size: (u32, u32), tex_atlas: &'a tex_atlas::TextureAtlas) -> Self
 
         where F: glium::backend::Facade {
 
@@ -84,13 +86,17 @@ impl<'a> TileMap<'a> {
         let fragment_shader = read_string("assets/tile_map.frag");
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
+        let tex_disable_smoothing = visible_tile_size != tex_atlas.tile_size();
+
         TileMap {
             size: size,
+            visible_tile_size: visible_tile_size,
             tiles: tiles,
             vertices: vertices,
             indices: indices,
             program: program,
             tex_atlas: tex_atlas,
+            tex_disable_smoothing: tex_disable_smoothing,
         }
     }
 
@@ -107,7 +113,7 @@ impl<'a> TileMap<'a> {
         where F: glium::backend::Facade {
 
         let (mw, _) = self.size;
-        let (tw, th) = self.tex_atlas.tile_size();
+        let (tw, th) = self.visible_tile_size;
         let (ac, _) = self.tex_atlas.tile_count();
         let r = self.tex_atlas.ratio();
 
@@ -137,12 +143,17 @@ impl<'a> super::Renderable for TileMap<'a> {
 
         let uniforms = uniform! {
             matrix: proj,
-            tile_size: self.tex_atlas.tile_size(),
+            tile_size: self.visible_tile_size,
             tex: {
-                use glium::uniforms::{MagnifySamplerFilter, MinifySamplerFilter};
                 let s = self.tex_atlas.texture().sampled();
-                s.magnify_filter(MagnifySamplerFilter::Linear);
-                s.minify_filter(MinifySamplerFilter::Linear);
+
+                // TODO find better solution for pixel-perfect tiles
+                if self.tex_disable_smoothing {
+                    s.wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
+                        .minify_filter(glium::uniforms::MinifySamplerFilter::Nearest)
+                        .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest);
+                }
+
                 s
             },
             tex_ratio: self.tex_atlas.ratio(),

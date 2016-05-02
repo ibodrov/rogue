@@ -4,6 +4,8 @@ extern crate cgmath;
 extern crate time;
 extern crate tex_atlas;
 extern crate rand;
+#[macro_use]
+extern crate log;
 
 mod tile_map;
 mod cfg;
@@ -37,19 +39,15 @@ pub fn start() {
         .unwrap();
 
     let cfg = cfg::load(&display, "assets/ui.toml");
+    let visible_tile_size = cfg.map_cfg().visible_tile_size();
     let tex_atlas = cfg.map_cfg().atlas();
 
     let dwarf_cfg = cfg.map_cfg().entities().get("dwarf").unwrap();
     let grass_cfg = cfg.map_cfg().entities().get("grass").unwrap();
 
-    //let tex_atlas = tex_atlas::load(&display, std::path::Path::new("assets/atlas.toml")).unwrap();
-    //let (tiles_cols, tiles_rows) = tex_atlas.tile_count();
-
-    let tile_size = tex_atlas.tile_size();
-    let map_size = (SCREEN_WIDTH / tile_size.0, SCREEN_HEIGHT / tile_size.1);
-    //let map_size = (16, 16);
+    let map_size = (SCREEN_WIDTH / visible_tile_size.0, SCREEN_HEIGHT / visible_tile_size.1);
     let mut viewport = Viewport { position: (0, 0), size: (SCREEN_WIDTH, SCREEN_HEIGHT) };
-    let mut tile_map = tile_map::TileMap::new(&display, map_size, &tex_atlas);
+    let mut tile_map = tile_map::TileMap::new(&display, map_size, visible_tile_size, &tex_atlas);
 
     let mut t0 = time::precise_time_s();
     let mut frames = 0;
@@ -86,9 +84,9 @@ pub fn start() {
                         }
                     },
                     Event::Resized(w, h) => {
-                        let map_size = (w / tile_size.0, h / tile_size.1);
+                        let map_size = (w / visible_tile_size.0, h / visible_tile_size.1);
                         viewport = Viewport { position: (0, 0), size: (w, h) };
-                        tile_map = tile_map::TileMap::new(&display, map_size, &tex_atlas);
+                        tile_map = tile_map::TileMap::new(&display, map_size, visible_tile_size, &tex_atlas);
                     },
                     _ => (),
                 }

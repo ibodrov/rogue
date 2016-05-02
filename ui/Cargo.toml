@@ -9,6 +9,7 @@ cgmath = "*"
 time = "*"
 rand = "*"
 toml = "*"
+log = "*"
 
 [dependencies.world]
 path = "../world"
