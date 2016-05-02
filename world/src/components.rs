@@ -1,5 +1,7 @@
 use specs;
 
+/// Position
+
 pub struct Position {
     pub x: u32,
     pub y: u32,
@@ -19,6 +21,8 @@ impl Position {
 impl specs::Component for Position {
     type Storage = specs::VecStorage<Position>;
 }
+
+/// PlayerControlled
 
 pub struct PlayerControlled;
 

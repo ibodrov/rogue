@@ -1,0 +1,6 @@
+[map]
+atlas="assets/atlas.toml"
+
+[map.tiles]
+dwarf = { tile = 1,  fg = [255, 255, 255, 255] }
+grass = { tile = 46, fg = [0,   128, 0,   255] }

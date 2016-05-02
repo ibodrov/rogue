@@ -6,6 +6,7 @@ extern crate tex_atlas;
 extern crate rand;
 
 mod tile_map;
+mod cfg;
 
 use rand::Rng;
 
@@ -22,6 +23,10 @@ trait Renderable {
         where F: glium::backend::Facade, S: glium::Surface;
 }
 
+fn to_vec4(v: [u8; 4]) -> [f32; 4] {
+    [v[0] as f32 / 255.0, v[1] as f32 / 255.0, v[2] as f32 / 255.0, v[3] as f32 / 255.0]
+}
+
 pub fn start() {
     use glium::{DisplayBuild, Surface};
     use glium::glutin::{Event, VirtualKeyCode, ElementState};
@@ -31,8 +36,14 @@ pub fn start() {
         .build_glium()
         .unwrap();
 
-    let tex_atlas = tex_atlas::load(&display, std::path::Path::new("assets/atlas.toml")).unwrap();
-    let (tiles_cols, tiles_rows) = tex_atlas.tile_count();
+    let cfg = cfg::load(&display, "assets/ui.toml");
+    let tex_atlas = cfg.map_cfg().atlas();
+
+    let dwarf_cfg = cfg.map_cfg().entities().get("dwarf").unwrap();
+    let grass_cfg = cfg.map_cfg().entities().get("grass").unwrap();
+
+    //let tex_atlas = tex_atlas::load(&display, std::path::Path::new("assets/atlas.toml")).unwrap();
+    //let (tiles_cols, tiles_rows) = tex_atlas.tile_count();
 
     let tile_size = tex_atlas.tile_size();
     let map_size = (SCREEN_WIDTH / tile_size.0, SCREEN_HEIGHT / tile_size.1);
@@ -56,21 +67,18 @@ pub fn start() {
                                 for _ in 0..10000 {
                                     let x = rng.gen_range(0, mw);
                                     let y = rng.gen_range(0, mh);
-                                    let t = rng.gen_range(0, tiles_cols * tiles_rows);
-
-                                    let fr = rng.next_f32();
-                                    let fb = rng.next_f32();
-                                    let fg = rng.next_f32();
-                                    let fa = rng.next_f32();
-
-                                    let br = rng.next_f32();
-                                    let bg = rng.next_f32();
-                                    let bb = rng.next_f32();
+                                    let t = {
+                                        if rng.gen_weighted_bool(100) {
+                                            dwarf_cfg
+                                        } else {
+                                            grass_cfg
+                                        }
+                                    };
 
                                     tile_map.set_tile(x, y, tile_map::Tile {
-                                        n: t,
-                                        fg_color: [fr, fg, fb, fa],
-                                        bg_color: [br, bg, bb],
+                                        n: t.tile(),
+                                        fg_color: to_vec4(t.fg_color()),
+                                        bg_color: [0.0, 0.0, 0.0],
                                     });
                                 }
                             },
