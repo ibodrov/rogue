@@ -1,6 +1,8 @@
 extern crate glium;
 extern crate image;
 extern crate toml;
+#[macro_use]
+extern crate log;
 
 use std::path::Path;
 use glium::backend::Facade;
@@ -74,14 +76,6 @@ pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, Texture
     let mut s = String::new();
     try!(f.read_to_string(&mut s));
 
-    fn format_errors(errors: &Vec<toml::ParserError>) -> String {
-        let mut s = String::new();
-        for e in errors {
-            s.push_str(&format!("{:?}", e));
-            s.push_str("\n");
-        }
-        s
-    }
 
     let mut p = toml::Parser::new(&s);
     match p.parse() {
@@ -135,13 +129,26 @@ pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, Texture
             let img = glium::texture::RawImage2d::from_raw_rgba_reversed(img.into_raw(), dimensions);
             let tex = try!(Texture2d::new(display, img));
 
+            debug!("texture atlas is created from {:?}: [texture: {:?}, tile_size: {:?}, tile_count: {:?}, color_mask: {:?}]", path, image_file, tile_size, tile_count, color_mask);
+
             Ok(TextureAtlas {
                 texture: tex,
                 tile_size: tile_size,
                 tile_count: tile_count,
             })
         },
-        _ => Err(TextureAtlasError::Parse(format_errors(&p.errors))),
+        _ => {
+            let s = {
+                let mut s = String::new();
+                for e in &p.errors {
+                    s.push_str(&format!("{:?}", e));
+                    s.push_str("\n");
+                }
+                s
+            };
+
+            Err(TextureAtlasError::Parse(s))
+        },
     }
 }
 

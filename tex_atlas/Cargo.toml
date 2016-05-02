@@ -7,3 +7,4 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 glium = "*"
 image = "*"
 toml = "*"
+log = "*"

@@ -1,11 +1,10 @@
 [package]
-name = "rogue2"
+name = "rogue"
 version = "0.1.0"
 authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 
 [dependencies]
-specs = "*"
-chan = "*"
+env_logger = "*"
 
 [dependencies.tex_atlas]
 path = "tex_atlas"
