@@ -117,11 +117,13 @@ pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, Texture
 
                 // apply the color mask
                 if let Some(ref mask) = color_mask {
+                    use image::Pixel;
+
                     for x in 0..dimensions.0 {
                         for y in 0..dimensions.1 {
                             let mut px = img.get_pixel_mut(x, y);
                             if px == mask {
-                                px[3] = 0;
+                                px.apply(|_| 0);
                             }
                         }
                     }

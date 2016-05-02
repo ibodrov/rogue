@@ -32,9 +32,11 @@ pub fn start() {
         .unwrap();
 
     let tex_atlas = tex_atlas::load(&display, std::path::Path::new("assets/atlas.toml")).unwrap();
+    let (tiles_cols, tiles_rows) = tex_atlas.tile_count();
 
     let tile_size = tex_atlas.tile_size();
     let map_size = (SCREEN_WIDTH / tile_size.0, SCREEN_HEIGHT / tile_size.1);
+    //let map_size = (16, 16);
     let mut viewport = Viewport { position: (0, 0), size: (SCREEN_WIDTH, SCREEN_HEIGHT) };
     let mut tile_map = tile_map::TileMap::new(&display, map_size, &tex_atlas);
 
@@ -54,8 +56,22 @@ pub fn start() {
                                 for _ in 0..10000 {
                                     let x = rng.gen_range(0, mw);
                                     let y = rng.gen_range(0, mh);
-                                    let t = rng.gen_range(0, 16 * 16);
-                                    tile_map.set_tile(x, y, tile_map::Tile(t));
+                                    let t = rng.gen_range(0, tiles_cols * tiles_rows);
+
+                                    let fr = rng.next_f32();
+                                    let fb = rng.next_f32();
+                                    let fg = rng.next_f32();
+                                    let fa = rng.next_f32();
+
+                                    let br = rng.next_f32();
+                                    let bg = rng.next_f32();
+                                    let bb = rng.next_f32();
+
+                                    tile_map.set_tile(x, y, tile_map::Tile {
+                                        n: t,
+                                        fg_color: [fr, fg, fb, fa],
+                                        bg_color: [br, bg, bb],
+                                    });
                                 }
                             },
                             _ => (),

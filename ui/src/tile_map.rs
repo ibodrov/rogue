@@ -13,9 +13,11 @@ implement_vertex!(Vertex, position);
 struct Instance {
     screen_position: [u32; 2],
     tex_offset: [f32; 2],
+    fg_color: [f32; 4],
+    bg_color: [f32; 3],
 }
 
-implement_vertex!(Instance, screen_position, tex_offset);
+implement_vertex!(Instance, screen_position, tex_offset, fg_color, bg_color);
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 1, 3, 2];
 const QUAD: [Vertex; 4] = [
@@ -25,11 +27,19 @@ const QUAD: [Vertex; 4] = [
     Vertex { position: [1, 0], },
 ];
 
-pub struct Tile(pub u32);
+pub struct Tile {
+    pub n: u32,
+    pub fg_color: [f32; 4],
+    pub bg_color: [f32; 3],
+}
 
 impl Default for Tile {
     fn default() -> Self {
-        Tile(0)
+        Tile {
+            n: 0,
+            fg_color: [1.0, 1.0, 1.0, 1.0],
+            bg_color: [0.0, 0.0, 0.0],
+        }
     }
 }
 
@@ -47,6 +57,16 @@ pub struct TileMap<'a> {
     tex_atlas: &'a tex_atlas::TextureAtlas,
 }
 
+fn read_string(path: &str) -> String {
+    use std::io::Read;
+    use std::fs::File;
+
+    let mut f = File::open(path).unwrap();
+    let mut s = String::new();
+    f.read_to_string(&mut s).unwrap();
+    s
+}
+
 impl<'a> TileMap<'a> {
     pub fn new<F>(display: &F, size: (u32, u32), tex_atlas: &'a tex_atlas::TextureAtlas) -> Self
 
@@ -60,8 +80,8 @@ impl<'a> TileMap<'a> {
         let vertices = glium::VertexBuffer::new(display, &QUAD).unwrap();
         let indices = glium::IndexBuffer::new(display, PrimitiveType::TrianglesList, &QUAD_INDICES).unwrap();
 
-        let vertex_shader = include_str!("shaders/tile_map.vert");
-        let fragment_shader = include_str!("shaders/tile_map.frag");
+        let vertex_shader = read_string("assets/tile_map.vert");
+        let fragment_shader = read_string("assets/tile_map.frag");
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
         TileMap {
@@ -97,10 +117,11 @@ impl<'a> TileMap<'a> {
             let x = (i % mw) * tw;
             let y = (i / mw) * th;
 
-            let tx = (t.0 % ac) as f32 * r[0];
-            let ty = (t.0 / ac) as f32 * r[1];
+            let tx = (t.n % ac) as f32 * r[0];
+            let ty = (t.n / ac) as f32 * r[1];
 
-            Instance { screen_position: [x, y], tex_offset: [tx, ty] }
+            Instance { screen_position: [x, y], tex_offset: [tx, ty],
+                       fg_color: t.fg_color, bg_color: t.bg_color }
         }).collect::<Vec<Instance>>();
 
         glium::VertexBuffer::dynamic(display, &data).unwrap()
@@ -131,7 +152,6 @@ impl<'a> super::Renderable for TileMap<'a> {
 
         // TODO move to arguments?
         let params = glium::DrawParameters {
-            blend: glium::Blend::alpha_blending(),
             viewport: {
                 let (x, y) = viewport.position;
                 let (w, h) = viewport.size;
