@@ -88,31 +88,47 @@ pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, Texture
         Some(table) => {
             use toml_utils;
 
-            fn vec_to_pair(k: &str, v: Vec<u32>) -> Result<(u32, u32), TextureAtlasError> {
-                if v.len() != 2 {
-                    Err(TextureAtlasError::Parse(format!("Invalid array length of '{}': {}", k, v.len())))
-                } else {
-                    Ok((v[0], v[1]))
-                }
-            }
-
             let image_file = {
                 let k = "file";
-                try!(toml_utils::ensure_string(&table, k))
+                try!(toml_utils::required_string(&table, k))
             };
 
             let tile_size = {
                 let k = "tile_size";
-                try!(vec_to_pair(k, try!(toml_utils::ensure_vec_of_u32(&table, k))))
+                try!(toml_utils::vec_to_pair(k, try!(toml_utils::required_vec_of_u32(&table, k))))
             };
 
             let tile_count = {
                 let k = "tile_count";
-                try!(vec_to_pair(k, try!(toml_utils::ensure_vec_of_u32(&table, k))))
+                try!(toml_utils::vec_to_pair(k, try!(toml_utils::required_vec_of_u32(&table, k))))
             };
 
-            let img = try!(image::open(image_file)).to_rgba();
-            let dimensions = img.dimensions();
+            let color_mask = {
+                let k = "color_mask";
+                match try!(toml_utils::optional_vec_of_u32(&table, k)) {
+                    Some(v) => Some(try!(toml_utils::vec_to_rbga8(k, v))),
+                    _ => None
+                }
+            };
+
+            let (img, dimensions) = {
+                let mut img = try!(image::open(image_file)).to_rgba();
+                let dimensions = img.dimensions();
+
+                // apply the color mask
+                if let Some(ref mask) = color_mask {
+                    for x in 0..dimensions.0 {
+                        for y in 0..dimensions.1 {
+                            let mut px = img.get_pixel_mut(x, y);
+                            if px == mask {
+                                px[3] = 0;
+                            }
+                        }
+                    }
+                }
+
+                (img, dimensions)
+            };
 
             let img = glium::texture::RawImage2d::from_raw_rgba_reversed(img.into_raw(), dimensions);
             let tex = try!(Texture2d::new(display, img));
@@ -130,16 +146,23 @@ pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, Texture
 mod toml_utils {
     use toml::{Table, Value};
     use super::TextureAtlasError;
+    use super::image;
 
-    fn ensure_field<'a>(t: &'a Table, k: &str) -> Result<&'a Value, TextureAtlasError> {
+    // TODO deal with this mess
+
+    fn required_field<'a>(t: &'a Table, k: &str) -> Result<&'a Value, TextureAtlasError> {
         match t.get(k) {
             Some(v) => Ok(v),
             _ => Err(TextureAtlasError::Parse(format!("Missing value of '{}'", k))),
         }
     }
 
-    pub fn ensure_string<'a>(t: &'a Table, k: &str) -> Result<&'a String, TextureAtlasError> {
-        let v = try!(ensure_field(t, k));
+    fn optional_field<'a>(t: &'a Table, k: &str) -> Option<&'a Value> {
+        t.get(k)
+    }
+
+    pub fn required_string<'a>(t: &'a Table, k: &str) -> Result<&'a String, TextureAtlasError> {
+        let v = try!(required_field(t, k));
         match v {
             &Value::String(ref s) => Ok(s),
             _ => Err(TextureAtlasError::Parse(format!("Invalid value type of '{}'", k))),
@@ -159,13 +182,50 @@ mod toml_utils {
         }
     }
 
-    pub fn ensure_vec_of_u32<'a>(t: &'a Table, k: &str) -> Result<Vec<u32>, TextureAtlasError> {
-        let v = try!(ensure_field(t, k));
+    pub fn required_vec_of_u32<'a>(t: &'a Table, k: &str) -> Result<Vec<u32>, TextureAtlasError> {
+        let v = try!(required_field(t, k));
         match v {
             &Value::Array(ref arr) => {
                 Ok(arr.iter().map(|v| to_u32(k, v).unwrap()).collect())
             },
             _ => Err(TextureAtlasError::Parse(format!("Invalid value type of '{}'", k))),
+        }
+    }
+
+    pub fn optional_vec_of_u32<'a>(t: &'a Table, k: &str) -> Result<Option<Vec<u32>>, TextureAtlasError> {
+        let v = optional_field(t, k);
+        match v {
+            Some(&Value::Array(ref arr)) => {
+                Ok(Some(arr.iter().map(|v| to_u32(k, v).unwrap()).collect()))
+            },
+            _ => Ok(None),
+        }
+    }
+
+    pub fn vec_to_pair(k: &str, v: Vec<u32>) -> Result<(u32, u32), TextureAtlasError> {
+        if v.len() != 2 {
+            Err(TextureAtlasError::Parse(format!(
+                "Invalid array length of '{}': {} (expected 2)", k, v.len())))
+        } else {
+            Ok((v[0], v[1]))
+        }
+    }
+
+    pub fn vec_to_rbga8(k: &str, v: Vec<u32>) -> Result<image::Rgba<u8>, TextureAtlasError> {
+        if v.len() != 4 {
+            Err(TextureAtlasError::Parse(format!(
+                "Invalid array length of '{}': {} (expected 4)", k, v.len())))
+        } else {
+            use std::u8;
+
+            for i in &v {
+                if *i > u8::MAX as u32 {
+                    return Err(TextureAtlasError::Parse(format!(
+                        "Invalid array value of '{}': {} (expected 0 <= x <= 255)", k, i)));
+                }
+            }
+
+            Ok(image::Rgba { data: [v[0] as u8, v[1] as u8, v[2] as u8, v[3] as u8] })
         }
     }
 }

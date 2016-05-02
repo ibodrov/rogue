@@ -17,8 +17,8 @@ struct Instance {
 
 implement_vertex!(Instance, screen_position, tex_offset);
 
-const QUAD_INDICES: &'static [u16] = &[0u16, 1, 2, 1, 3, 2];
-const QUAD: &'static [Vertex] = &[
+const QUAD_INDICES: [u16; 6] = [0, 1, 2, 1, 3, 2];
+const QUAD: [Vertex; 4] = [
     Vertex { position: [0, 1], },
     Vertex { position: [1, 1], },
     Vertex { position: [0, 0], },
@@ -33,12 +33,9 @@ impl Default for Tile {
     }
 }
 
-pub struct TileMap {
+pub struct TileMap<'a> {
     /// size of the map (in tiles)
-    map_size: (u32, u32),
-
-    /// size of the viewport (in px)
-    view_size: (u32, u32),
+    size: (u32, u32),
 
     /// state of the map
     tiles: Vec<Tile>,
@@ -47,30 +44,28 @@ pub struct TileMap {
     indices: glium::IndexBuffer<u16>,
     program: glium::Program,
 
-    tex_atlas: tex_atlas::TextureAtlas,
+    tex_atlas: &'a tex_atlas::TextureAtlas,
 }
 
-impl TileMap {
-    pub fn new<F>(display: &F, view_size: (u32, u32), map_size: (u32, u32),
-                  tex_atlas: tex_atlas::TextureAtlas) -> Self
+impl<'a> TileMap<'a> {
+    pub fn new<F>(display: &F, size: (u32, u32), tex_atlas: &'a tex_atlas::TextureAtlas) -> Self
 
         where F: glium::backend::Facade {
 
         use glium::index::PrimitiveType;
 
-        let cnt = map_size.0 * map_size.1;
+        let cnt = size.0 * size.1;
         let tiles = (0..cnt).map(|_| Default::default()).collect();
 
         let vertices = glium::VertexBuffer::new(display, &QUAD).unwrap();
-        let indices = glium::IndexBuffer::new(display, PrimitiveType::TrianglesList, QUAD_INDICES).unwrap();
+        let indices = glium::IndexBuffer::new(display, PrimitiveType::TrianglesList, &QUAD_INDICES).unwrap();
 
         let vertex_shader = include_str!("shaders/tile_map.vert");
         let fragment_shader = include_str!("shaders/tile_map.frag");
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
         TileMap {
-            map_size: map_size,
-            view_size: view_size,
+            size: size,
             tiles: tiles,
             vertices: vertices,
             indices: indices,
@@ -80,19 +75,19 @@ impl TileMap {
     }
 
     pub fn set_tile(&mut self, x: u32, y: u32, t: Tile) {
-        let idx = (self.map_size.0 * y + x) as usize;
+        let idx = (self.size.0 * y + x) as usize;
         self.tiles[idx] = t;
     }
 
-    pub fn map_size(&self) -> (u32, u32) {
-        self.map_size
+    pub fn size(&self) -> (u32, u32) {
+        self.size
     }
 
     fn create_instances<F>(&self, display: &F) -> glium::VertexBuffer<Instance>
         where F: glium::backend::Facade {
 
+        let (mw, _) = self.size;
         let (tw, th) = self.tex_atlas.tile_size();
-        let (mw, _) = self.map_size;
         let (ac, _) = self.tex_atlas.tile_count();
         let r = self.tex_atlas.ratio();
 
@@ -112,30 +107,43 @@ impl TileMap {
     }
 }
 
-pub trait Renderable {
-    fn render<F, S>(&self, display: &F, target: &mut S) where F: glium::backend::Facade, S: glium::Surface;
-}
-
-impl Renderable for TileMap {
-    fn render<F, S>(&self, display: &F, target: &mut S)
+impl<'a> super::Renderable for TileMap<'a> {
+    fn render<F, S>(&self, display: &F, target: &mut S, viewport: &super::Viewport)
         where F: glium::backend::Facade, S: glium::Surface {
 
-        let (w, h) = (self.view_size.0 as f32, self.view_size.1 as f32);
+        let (w, h) = (viewport.size.0 as f32, viewport.size.1 as f32);
         let proj: [[f32; 4]; 4] = cgmath::ortho(0.0, w, h, 0.0, -1.0, 1.0).into();
 
         let uniforms = uniform! {
             matrix: proj,
             tile_size: self.tex_atlas.tile_size(),
-            tex: self.tex_atlas.texture(),
+            tex: {
+                use glium::uniforms::{MagnifySamplerFilter, MinifySamplerFilter};
+                let s = self.tex_atlas.texture().sampled();
+                s.magnify_filter(MagnifySamplerFilter::Linear);
+                s.minify_filter(MinifySamplerFilter::Linear);
+                s
+            },
             tex_ratio: self.tex_atlas.ratio(),
         };
 
         let instances = self.create_instances(display);
 
+        // TODO move to arguments?
+        let params = glium::DrawParameters {
+            blend: glium::Blend::alpha_blending(),
+            viewport: {
+                let (x, y) = viewport.position;
+                let (w, h) = viewport.size;
+                Some(glium::Rect { left: x, bottom: y, width: w, height: h })
+            },
+            .. Default::default()
+        };
+
         target.draw((&self.vertices, instances.per_instance().unwrap()),
                     &self.indices,
                     &self.program,
                     &uniforms,
-                    &Default::default()).unwrap();
+                    &params).unwrap();
     }
 }
