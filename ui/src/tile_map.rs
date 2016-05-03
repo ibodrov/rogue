@@ -31,6 +31,9 @@ pub struct Tile {
     pub n: u32,
     pub fg_color: [f32; 4],
     pub bg_color: [f32; 3],
+
+    /// Invisible tiles will only have a background color.
+    pub visible: bool,
 }
 
 impl Default for Tile {
@@ -39,6 +42,7 @@ impl Default for Tile {
             n: 0,
             fg_color: [1.0, 1.0, 1.0, 1.0],
             bg_color: [0.0, 0.0, 0.0],
+            visible: true,
         }
     }
 }
@@ -125,8 +129,14 @@ impl<'a> TileMap<'a> {
             let tx = (t.n % ac) as f32 * r[0];
             let ty = (t.n / ac) as f32 * r[1];
 
+            let fg = if t.visible {
+                t.fg_color
+            } else {
+                [0.0, 0.0, 0.0, 0.0]
+            };
+
             Instance { screen_position: [x, y], tex_offset: [tx, ty],
-                       fg_color: t.fg_color, bg_color: t.bg_color }
+                       fg_color: fg, bg_color: t.bg_color }
         }).collect::<Vec<Instance>>();
 
         glium::VertexBuffer::dynamic(display, &data).unwrap()
