@@ -6,3 +6,4 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 [dependencies]
 specs = "*"
 chan = "*"
+time = "*"

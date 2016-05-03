@@ -101,7 +101,6 @@ impl Map {
 
     pub fn update(&mut self, chunk: MapChunk) {
         self.sender.send(chunk);
-        self.apply_updates();
     }
 }
 
