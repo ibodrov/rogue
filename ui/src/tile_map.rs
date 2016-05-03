@@ -117,8 +117,7 @@ impl<'a> TileMap<'a> {
         let (ac, _) = self.tex_atlas.tile_count();
         let r = self.tex_atlas.ratio();
 
-        let idx = 0..;
-        let data = self.tiles.iter().zip(idx).map(|(t, i)| {
+        let data = self.tiles.iter().zip(0..).map(|(t, i)| {
             // TODO remove division?
             let x = (i % mw) * tw;
             let y = (i / mw) * th;

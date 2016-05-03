@@ -76,7 +76,7 @@ pub fn start() {
                                     tile_map.set_tile(x, y, tile_map::Tile {
                                         n: t.tile(),
                                         fg_color: to_vec4(t.fg_color()),
-                                        bg_color: [0.0, 0.0, 0.0],
+                                        .. Default::default()
                                     });
                                 }
                             },
