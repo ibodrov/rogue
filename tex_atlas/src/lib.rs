@@ -1,3 +1,7 @@
+#![cfg_attr(feature = "dev", allow(unstable_features))]
+#![cfg_attr(feature = "dev", feature(plugin))]
+#![cfg_attr(feature = "dev", plugin(clippy))]
+
 extern crate glium;
 extern crate image;
 extern crate toml;
@@ -100,7 +104,7 @@ pub fn load<F: Facade>(display: &F, path: &Path) -> Result<TextureAtlas, Texture
             let color_mask = {
                 let k = "color_mask";
                 match try!(toml_utils::optional_vec_of_u32(&table, k)) {
-                    Some(v) => Some(try!(toml_utils::vec_to_rbga8(k, v))),
+                    Some(val) => Some(try!(toml_utils::vec_to_rbga8(k, val))),
                     _ => None
                 }
             };
@@ -171,16 +175,16 @@ mod toml_utils {
     }
 
     pub fn required_string<'a>(t: &'a Table, k: &str) -> Result<&'a String, TextureAtlasError> {
-        let v = try!(required_field(t, k));
-        match v {
-            &Value::String(ref s) => Ok(s),
+        let val = try!(required_field(t, k));
+        match *val {
+            Value::String(ref s) => Ok(s),
             _ => Err(TextureAtlasError::Parse(format!("Invalid value type of '{}'", k))),
         }
     }
 
     fn to_u32(k: &str, v: &Value) -> Result<u32, TextureAtlasError> {
-        match v {
-            &Value::Integer(i) => {
+        match *v {
+            Value::Integer(i) => {
                 if i < 0 || i > ::std::u32::MAX as i64 {
                     Err(TextureAtlasError::Parse(format!("Invalid u32 value of '{}': {}", k, i)))
                 } else {
@@ -191,19 +195,19 @@ mod toml_utils {
         }
     }
 
-    pub fn required_vec_of_u32<'a>(t: &'a Table, k: &str) -> Result<Vec<u32>, TextureAtlasError> {
-        let v = try!(required_field(t, k));
-        match v {
-            &Value::Array(ref arr) => {
+    pub fn required_vec_of_u32(t: &Table, k: &str) -> Result<Vec<u32>, TextureAtlasError> {
+        let val = try!(required_field(t, k));
+        match *val {
+            Value::Array(ref arr) => {
                 Ok(arr.iter().map(|v| to_u32(k, v).unwrap()).collect())
             },
             _ => Err(TextureAtlasError::Parse(format!("Invalid value type of '{}'", k))),
         }
     }
 
-    pub fn optional_vec_of_u32<'a>(t: &'a Table, k: &str) -> Result<Option<Vec<u32>>, TextureAtlasError> {
-        let v = optional_field(t, k);
-        match v {
+    pub fn optional_vec_of_u32(t: &Table, k: &str) -> Result<Option<Vec<u32>>, TextureAtlasError> {
+        let val = optional_field(t, k);
+        match val {
             Some(&Value::Array(ref arr)) => {
                 Ok(Some(arr.iter().map(|v| to_u32(k, v).unwrap()).collect()))
             },

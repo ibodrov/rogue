@@ -1,3 +1,7 @@
+#![cfg_attr(feature = "dev", allow(unstable_features))]
+#![cfg_attr(feature = "dev", feature(plugin))]
+#![cfg_attr(feature = "dev", plugin(clippy))]
+
 #[macro_use]
 extern crate glium;
 extern crate cgmath;
@@ -57,30 +61,25 @@ pub fn start() {
             for ev in display.poll_events() {
                 match ev {
                     Event::Closed | Event::KeyboardInput(_, _, Some(VirtualKeyCode::Escape)) => return,
-                    Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
-                        match code {
-                            VirtualKeyCode::Space => {
-                                let (mw, mh) = tile_map.size();
-                                let mut rng = rand::thread_rng();
-                                for _ in 0..10000 {
-                                    let x = rng.gen_range(0, mw);
-                                    let y = rng.gen_range(0, mh);
-                                    let t = {
-                                        if rng.gen_weighted_bool(100) {
-                                            dwarf_cfg
-                                        } else {
-                                            grass_cfg
-                                        }
-                                    };
-
-                                    tile_map.set_tile(x, y, tile_map::Tile {
-                                        n: t.tile(),
-                                        fg_color: to_vec4(t.fg_color()),
-                                        .. Default::default()
-                                    });
+                    Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Space)) => {
+                        let (mw, mh) = tile_map.size();
+                        let mut rng = rand::thread_rng();
+                        for _ in 0..10000 {
+                            let x = rng.gen_range(0, mw);
+                            let y = rng.gen_range(0, mh);
+                            let t = {
+                                if rng.gen_weighted_bool(100) {
+                                    dwarf_cfg
+                                } else {
+                                    grass_cfg
                                 }
-                            },
-                            _ => (),
+                            };
+
+                            tile_map.set_tile(x, y, tile_map::Tile {
+                                n: t.tile(),
+                                fg_color: to_vec4(t.fg_color()),
+                                .. Default::default()
+                            });
                         }
                     },
                     Event::Resized(w, h) => {

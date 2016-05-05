@@ -7,3 +7,11 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 specs = "*"
 chan = "*"
 time = "*"
+
+[dependencies.clippy]
+version = "*"
+optional = true
+
+[features]
+default = []
+dev = ["clippy"]

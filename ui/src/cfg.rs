@@ -80,19 +80,19 @@ pub fn load<F: Facade>(display: &F, path: &str) -> Configuration {
                     match table.get("tiles") {
                         Some(&Value::Table(ref table)) => {
                             for (k, e) in table {
-                                match e {
-                                    &Value::Table(ref table) => {
+                                match *e {
+                                    Value::Table(ref table) => {
                                         let tile = table.get("tile").unwrap().as_integer().unwrap() as u32;
                                         let fg = table.get("fg").unwrap().as_slice().unwrap().iter().map(|v| v.as_integer().unwrap() as u8).collect::<Vec<_>>();
                                         debug!("map.tiles: tile={:?}, fg={:?}", tile, fg);
 
                                         let k = k.clone();
-                                        let v = MapEntityCfg {
+                                        let val = MapEntityCfg {
                                             tile: tile,
                                             fg: [fg[0], fg[1], fg[2], fg[3]],
                                         };
 
-                                        entities.insert(k, v);
+                                        entities.insert(k, val);
                                     },
                                     _ => panic!("Error while parsing UI declarations #4"),
                                 }
@@ -101,15 +101,13 @@ pub fn load<F: Facade>(display: &F, path: &str) -> Configuration {
                         _ => panic!("Error while parsing UI declarations #3"),
                     }
 
-                    let vis = Configuration {
+                    Configuration {
                         map_cfg: MapCfg {
                             atlas: atlas,
                             visible_tile_size: visible_tile_size,
                             entities: entities,
                         },
-                    };
-
-                    vis
+                    }
                 },
                 _ => panic!("Error while parsing UI declarations #2"),
             }

@@ -1,6 +1,6 @@
 use specs;
 
-/// Position
+/// `Position`
 
 pub struct Position {
     pub x: u32,
@@ -22,7 +22,7 @@ impl specs::Component for Position {
     type Storage = specs::VecStorage<Position>;
 }
 
-/// PlayerControlled
+/// `PlayerControlled`
 
 pub struct PlayerControlled;
 
@@ -35,6 +35,8 @@ impl Default for PlayerControlled {
 impl specs::Component for PlayerControlled {
     type Storage = specs::VecStorage<PlayerControlled>;
 }
+
+/// `Visible`
 
 pub struct Visible {
     pub mark: u8,

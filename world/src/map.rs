@@ -33,7 +33,7 @@ impl MapChunk {
 impl Index<(u32, u32, u32)> for MapChunk {
     type Output = Cell;
 
-    fn index<'a>(&'a self, coords: (u32, u32, u32)) -> &'a Cell {
+    fn index(&self, coords: (u32, u32, u32)) -> &Cell {
         debug_assert!(self.is_inside(coords),
                       "Invalid coordinates. Size: {:?}, coordinates: {:?}", self.size, coords);
 
@@ -43,7 +43,7 @@ impl Index<(u32, u32, u32)> for MapChunk {
 }
 
 impl IndexMut<(u32, u32, u32)> for MapChunk {
-    fn index_mut<'a>(&'a mut self, coords: (u32, u32, u32)) -> &'a mut Cell {
+    fn index_mut(&mut self, coords: (u32, u32, u32)) -> &mut Cell {
         debug_assert!(self.is_inside(coords),
                       "Invalid coordinates. Size: {:?}, coordinates: {:?}", self.size, coords);
 
@@ -107,13 +107,13 @@ impl Map {
 impl Index<(u32, u32, u32)> for Map {
     type Output = Cell;
 
-    fn index<'a>(&'a self, coords: (u32, u32, u32)) -> &'a Cell {
+    fn index(&self, coords: (u32, u32, u32)) -> &Cell {
         &self.chunk[coords]
     }
 }
 
 impl IndexMut<(u32, u32, u32)> for Map {
-    fn index_mut<'a>(&'a mut self, coords: (u32, u32, u32)) -> &'a mut Cell {
+    fn index_mut(&mut self, coords: (u32, u32, u32)) -> &mut Cell {
         &mut self.chunk[coords]
     }
 }

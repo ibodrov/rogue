@@ -56,15 +56,15 @@ impl<'a> Iterator for TilesIter<'a> {
         match self.delegate.next() {
             Some(t) => {
                 let (ref mut x, ref mut y, ref mut z) = self.position;
-                let (w, h, _) = self.size;
+                let (sx, sy, _) = self.size;
 
                 let result = Some((*x, *y, *z, t));
 
                 *x += 1;
-                if *x >= w {
+                if *x >= sx {
                     *x = 0;
                     *y += 1;
-                    if *y >= h {
+                    if *y >= sy {
                         *y = 0;
                         *z += 1;
                     }

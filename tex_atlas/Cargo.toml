@@ -8,3 +8,11 @@ glium = "*"
 image = "*"
 toml = "*"
 log = "*"
+
+[dependencies.clippy]
+version = "*"
+optional = true
+
+[features]
+default = []
+dev = ["clippy"]
