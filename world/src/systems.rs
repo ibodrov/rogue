@@ -1,8 +1,7 @@
 use specs;
 use chan;
-
-use super::components;
-use super::map;
+use components;
+use map;
 
 pub type TimeDelta = f64;
 

@@ -1,5 +1,5 @@
 use std::slice;
-use super::map;
+use map;
 
 #[derive(Debug)]
 pub enum Effect {

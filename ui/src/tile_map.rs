@@ -1,6 +1,6 @@
-extern crate glium;
-extern crate cgmath;
-extern crate tex_atlas;
+use glium;
+use cgmath;
+use tex_atlas;
 
 #[derive(Copy, Clone)]
 struct Vertex {
