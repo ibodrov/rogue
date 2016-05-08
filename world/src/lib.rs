@@ -24,6 +24,15 @@ pub struct WorldContext {
     map: map::Map,
 }
 
+impl WorldContext {
+    pub fn new(time_delta: f64, map: map::Map) -> Self {
+        WorldContext {
+            time_delta: time_delta,
+            map: map,
+        }
+    }
+}
+
 pub struct World {
     planner: specs::Planner<WorldContext>,
     map: map::Map,
