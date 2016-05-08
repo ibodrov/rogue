@@ -5,14 +5,14 @@ use std::path::Path;
 use tex_atlas;
 use glium::backend::Facade;
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub struct MapEntityCfg {
-    tile: u32,
+    tile: u8,
     fg: [u8; 4],
 }
 
 impl MapEntityCfg {
-    pub fn tile(&self) -> u32 {
+    pub fn tile(&self) -> u8 {
         self.tile
     }
 
@@ -23,7 +23,7 @@ impl MapEntityCfg {
 
 pub struct MapCfg {
     atlas: tex_atlas::TextureAtlas,
-    visible_tile_size: (u32, u32),
+    visible_tile_size: Option<(u32, u32)>,
     entities: HashMap<String, MapEntityCfg>,
 }
 
@@ -32,7 +32,7 @@ impl MapCfg {
         &self.atlas
     }
 
-    pub fn visible_tile_size(&self) -> (u32, u32) {
+    pub fn visible_tile_size(&self) -> Option<(u32, u32)> {
         self.visible_tile_size
     }
 
@@ -71,8 +71,12 @@ pub fn load<F: Facade>(display: &F, path: &str) -> Configuration {
                     let atlas = tex_atlas::load(display, Path::new(f)).unwrap();
 
                     let visible_tile_size = {
-                        let s = table.get("visible_tile_size").unwrap().as_slice().unwrap();
-                        (s[0].as_integer().unwrap() as u32, s[1].as_integer().unwrap() as u32)
+                        if let Some(v) = table.get("visible_tile_size") {
+                            let s = v.as_slice().unwrap();
+                            Some((s[0].as_integer().unwrap() as u32, s[1].as_integer().unwrap() as u32))
+                        } else {
+                            None
+                        }
                     };
                     debug!("visible_tile_size: {:?}", visible_tile_size);
 
@@ -82,7 +86,7 @@ pub fn load<F: Facade>(display: &F, path: &str) -> Configuration {
                             for (k, e) in table {
                                 match *e {
                                     Value::Table(ref table) => {
-                                        let tile = table.get("tile").unwrap().as_integer().unwrap() as u32;
+                                        let tile = table.get("tile").unwrap().as_integer().unwrap() as u8;
                                         let fg = table.get("fg").unwrap().as_slice().unwrap().iter().map(|v| v.as_integer().unwrap() as u8).collect::<Vec<_>>();
                                         debug!("map.tiles: tile={:?}, fg={:?}", tile, fg);
 

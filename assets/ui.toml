@@ -1,6 +1,6 @@
 [map]
-atlas="assets/atlas_ascii.toml"
-visible_tile_size=[8, 10]
+atlas="assets/atlas_aesomatica.toml"
+#visible_tile_size=[64, 64]
 
 [map.tiles]
 dwarf = { tile = 1,   fg = [255, 100,   0, 255] }

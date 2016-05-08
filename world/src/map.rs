@@ -58,3 +58,24 @@ impl Map {
         self.size
     }
 }
+
+pub fn load_from_csv(path: &str, size: (u32, u32, u32)) -> Map {
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+    use std::str::FromStr;
+
+    let f = File::open(path).unwrap();
+    let r = BufReader::new(f);
+
+    let mut data = Vec::new();
+    for line in r.lines() {
+        for i in line.unwrap().split(',').map(|s| u8::from_str(s).unwrap()) {
+            data.push(i);
+        }
+    }
+
+    Map {
+        size: size,
+        data: data,
+    }
+}

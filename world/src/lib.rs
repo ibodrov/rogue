@@ -42,7 +42,8 @@ pub struct World {
 
 impl Default for World {
     fn default() -> Self {
-        let map = map::Map::new((50, 50, 3), 0);
+        //let map = map::Map::new((50, 50, 3), 0);
+        let map = map::load_from_csv("assets/test_map.csv", (50, 50, 1));
         let (cmd_sender, cmd_receiver) = mpsc::channel();
 
         let planner = {

@@ -79,7 +79,7 @@ pub fn start() {
     use glium::glutin::{Event, VirtualKeyCode, ElementState};
 
     let mut world = world::World::default();
-    randomize_map(world.map_mut());
+    //randomize_map(world.map_mut());
 
     let display = glium::glutin::WindowBuilder::new()
         .with_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -87,8 +87,14 @@ pub fn start() {
         .unwrap();
 
     let cfg = cfg::load(&display, "assets/ui.toml");
-    let visible_tile_size = cfg.map_cfg().visible_tile_size();
     let tex_atlas = cfg.map_cfg().atlas();
+    let visible_tile_size = {
+        if let Some(v) = cfg.map_cfg().visible_tile_size() {
+            v
+        } else {
+            tex_atlas.tile_size()
+        }
+    };
 
     let dwarf_cfg = cfg.map_cfg().entities().get("dwarf").unwrap();
     let grass_cfg = cfg.map_cfg().entities().get("grass").unwrap();
@@ -120,6 +126,9 @@ pub fn start() {
                             VirtualKeyCode::D => {
                                 world.send_player_command(world::PlayerCommand::MoveRight);
                             },
+                            VirtualKeyCode::R => {
+                                randomize_map(world.map_mut());
+                            },
                             _ => (),
                         }
                     },
@@ -143,16 +152,12 @@ pub fn start() {
                 if let Some(ref fx) = t.effects {
                     for e in fx {
                         if let world::tile::Effect::Marked(_) = *e {
-                            return dwarf_cfg;
+                            return world_view::TileVariant::Entity(*dwarf_cfg);
                         }
                     }
                 }
 
-                match t.ground {
-                    0 => grass_cfg,
-                    1 => wall_cfg,
-                    _ => panic!("Unknown cell type: {:?}", t),
-                }
+                world_view::TileVariant::Simple(t.ground)
             };
             world_view::update(&mut tile_map, &rendered_view, converter);
         }

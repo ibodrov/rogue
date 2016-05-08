@@ -28,7 +28,7 @@ const QUAD: [Vertex; 4] = [
 ];
 
 pub struct Tile {
-    pub n: u32,
+    pub n: u8,
     pub fg_color: [f32; 4],
     pub bg_color: [f32; 3],
 
@@ -60,7 +60,6 @@ pub struct TileMap<'a> {
     program: glium::Program,
 
     tex_atlas: &'a tex_atlas::TextureAtlas,
-    tex_disable_smoothing: bool,
 }
 
 fn read_string(path: &str) -> String {
@@ -90,8 +89,6 @@ impl<'a> TileMap<'a> {
         let fragment_shader = read_string("assets/tile_map.frag");
         let program = glium::Program::from_source(display, &vertex_shader, &fragment_shader, None).unwrap();
 
-        let tex_disable_smoothing = visible_tile_size != tex_atlas.tile_size();
-
         TileMap {
             size: size,
             visible_tile_size: visible_tile_size,
@@ -100,7 +97,6 @@ impl<'a> TileMap<'a> {
             indices: indices,
             program: program,
             tex_atlas: tex_atlas,
-            tex_disable_smoothing: tex_disable_smoothing,
         }
     }
 
@@ -122,8 +118,8 @@ impl<'a> TileMap<'a> {
             let x = (i % mw) * tw;
             let y = (i / mw) * th;
 
-            let tx = (t.n % ac) as f32 * r[0];
-            let ty = (t.n / ac) as f32 * r[1];
+            let tx = (t.n as u32 % ac) as f32 * r[0];
+            let ty = (t.n as u32 / ac) as f32 * r[1];
 
             let fg = if t.visible {
                 t.fg_color
@@ -149,18 +145,10 @@ impl<'a> super::Renderable for TileMap<'a> {
         let uniforms = uniform! {
             matrix: proj,
             tile_size: self.visible_tile_size,
-            tex: {
-                let s = self.tex_atlas.texture().sampled();
-
-                // TODO find better solution for pixel-perfect tiles
-                if self.tex_disable_smoothing {
-                    s.wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
-                        .minify_filter(glium::uniforms::MinifySamplerFilter::Nearest)
-                        .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest);
-                }
-
-                s
-            },
+            tex: self.tex_atlas.texture().sampled()
+                .wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
+                .minify_filter(glium::uniforms::MinifySamplerFilter::Nearest)
+                .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest),
             tex_ratio: self.tex_atlas.ratio(),
         };
 
