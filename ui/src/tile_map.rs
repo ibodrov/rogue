@@ -109,10 +109,6 @@ impl<'a> TileMap<'a> {
         self.tiles[idx] = t;
     }
 
-    pub fn size(&self) -> (u32, u32) {
-        self.size
-    }
-
     fn create_instances<F>(&self, display: &F) -> glium::VertexBuffer<Instance>
         where F: glium::backend::Facade {
 

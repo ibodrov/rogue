@@ -1,7 +1,6 @@
 use std::sync::mpsc;
 use specs;
 use components;
-use map;
 
 pub enum PlayerCommand {
     MoveUp,
@@ -33,7 +32,6 @@ impl specs::System<super::WorldContext> for PlayerControlSystem {
             Ok(cmd) => {
                 let map = ctx.map;
                 let (map_size_x, map_size_y, _) = map.size();
-                let (map_size_x, map_size_y) = (50, 50);
 
                 for p in (&mut pos).iter() {
                     let mut x = p.x as i32;

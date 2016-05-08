@@ -142,9 +142,8 @@ pub fn start() {
             let converter = move |t: &world::tile::Tile| {
                 if let Some(ref fx) = t.effects {
                     for e in fx {
-                        match e {
-                            &world::tile::Effect::Marked(_) => return dwarf_cfg,
-                            _ => (),
+                        if let world::tile::Effect::Marked(_) = *e {
+                            return dwarf_cfg;
                         }
                     }
                 }

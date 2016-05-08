@@ -49,7 +49,7 @@ impl Map {
     }
 
     pub fn fill(&mut self, v: Cell) {
-        for i in self.data.iter_mut() {
+        for i in &mut self.data {
             *i = v;
         }
     }
