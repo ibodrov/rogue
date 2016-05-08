@@ -10,9 +10,11 @@ extern crate tex_atlas;
 extern crate rand;
 #[macro_use]
 extern crate log;
+extern crate world;
 
 mod tile_map;
 mod cfg;
+mod world_view;
 
 use rand::Rng;
 
@@ -33,9 +35,57 @@ fn to_vec4(v: [u8; 4]) -> [f32; 4] {
     [v[0] as f32 / 255.0, v[1] as f32 / 255.0, v[2] as f32 / 255.0, v[3] as f32 / 255.0]
 }
 
+fn randomize_map(map: &mut world::map::Map) {
+    let nothing = 0;
+    let wall = 1;
+
+    let (mx, my, mz) = map.size();
+    let mut chunk = world::map::MapChunk::new((0, 0, 0), (mx, my, mz), nothing);
+    let mut rng = rand::thread_rng();
+
+    for z in 0..mz {
+        // top and bottom wall
+        for x in 0..mx {
+            chunk[(x, 0, z)] = wall;
+            chunk[(x, my - 1, z)] = wall;
+        }
+
+        // left and right wall
+        for y in 0..my {
+            chunk[(0, y, z)] = wall;
+            chunk[(mx - 1, y, z)] = wall;
+        }
+
+        // random boxes
+        let cnt = 100;
+        for _ in 0..cnt {
+            let x = rng.gen_range(1, mx - 1);
+            let y = rng.gen_range(1, my - 1);
+            let w = rng.gen_range(2, 5);
+            let h = rng.gen_range(2, 5);
+
+            for j in y..y+h {
+                for i in x..x+w {
+                    if i >= mx || j >= my {
+                        continue;
+                    }
+
+                    chunk[(i, j, z)] = wall;
+                }
+            }
+        }
+    }
+
+    map.update(chunk);
+    map.apply_updates();
+}
+
 pub fn start() {
     use glium::{DisplayBuild, Surface};
     use glium::glutin::{Event, VirtualKeyCode, ElementState};
+
+    let mut world = world::World::default();
+    randomize_map(world.map_mut());
 
     let display = glium::glutin::WindowBuilder::new()
         .with_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -48,6 +98,7 @@ pub fn start() {
 
     let dwarf_cfg = cfg.map_cfg().entities().get("dwarf").unwrap();
     let grass_cfg = cfg.map_cfg().entities().get("grass").unwrap();
+    let wall_cfg = cfg.map_cfg().entities().get("wall").unwrap();
 
     let map_size = (SCREEN_WIDTH / visible_tile_size.0, SCREEN_HEIGHT / visible_tile_size.1);
     let mut viewport = Viewport { position: (0, 0), size: (SCREEN_WIDTH, SCREEN_HEIGHT) };
@@ -61,25 +112,21 @@ pub fn start() {
             for ev in display.poll_events() {
                 match ev {
                     Event::Closed | Event::KeyboardInput(_, _, Some(VirtualKeyCode::Escape)) => return,
-                    Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Space)) => {
-                        let (mw, mh) = tile_map.size();
-                        let mut rng = rand::thread_rng();
-                        for _ in 0..10000 {
-                            let x = rng.gen_range(0, mw);
-                            let y = rng.gen_range(0, mh);
-                            let t = {
-                                if rng.gen_weighted_bool(100) {
-                                    dwarf_cfg
-                                } else {
-                                    grass_cfg
-                                }
-                            };
-
-                            tile_map.set_tile(x, y, tile_map::Tile {
-                                n: t.tile(),
-                                fg_color: to_vec4(t.fg_color()),
-                                .. Default::default()
-                            });
+                    Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
+                        match code {
+                            VirtualKeyCode::W => {
+                                world.send_player_command(world::PlayerCommand::MoveUp);
+                            },
+                            VirtualKeyCode::S => {
+                                world.send_player_command(world::PlayerCommand::MoveDown);
+                            },
+                            VirtualKeyCode::A => {
+                                world.send_player_command(world::PlayerCommand::MoveLeft);
+                            },
+                            VirtualKeyCode::D => {
+                                world.send_player_command(world::PlayerCommand::MoveRight);
+                            },
+                            _ => (),
                         }
                     },
                     Event::Resized(w, h) => {
@@ -91,6 +138,33 @@ pub fn start() {
                 }
             }
         }
+
+        {
+            let view = world::render::View {
+                size: (map_size.0, map_size.1, 1),
+                .. Default::default()
+            };
+            let rendered_view = world::render::render(&mut world, &view);
+            let converter = move |t: &world::tile::Tile| {
+                if let Some(ref fx) = t.effects {
+                    for e in fx {
+                        match e {
+                            &world::tile::Effect::Marked(_) => return dwarf_cfg,
+                            _ => (),
+                        }
+                    }
+                }
+
+                match t.ground {
+                    0 => grass_cfg,
+                    1 => wall_cfg,
+                    _ => panic!("Unknown cell type: {:?}", t),
+                }
+            };
+            world_view::update(&mut tile_map, &rendered_view, converter);
+        }
+
+        world.tick();
 
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);

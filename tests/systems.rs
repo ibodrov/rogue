@@ -1,8 +1,8 @@
 extern crate world;
 extern crate specs;
-extern crate chan;
 
 use world::{systems, components, map};
+use std::sync::mpsc;
 
 #[test]
 fn test_player_control() {
@@ -18,7 +18,7 @@ fn test_player_control() {
         .with(components::PlayerControlled::default())
         .build();
 
-    let (sender, receiver) = chan::async();
+    let (sender, receiver) = mpsc::channel();
     planner.add_system(systems::PlayerControlSystem::new(receiver, map.clone()), "test", 0);
 
     // no action

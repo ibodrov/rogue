@@ -1,5 +1,4 @@
 use std::ops::{Index, IndexMut};
-use chan;
 
 pub type Cell = u8;
 
@@ -28,6 +27,12 @@ impl MapChunk {
         let (sx, sy, _) = self.size;
         (coords.0 + coords.1 * sx + coords.2 * sx * sy) as usize
     }
+
+    pub fn fill(&mut self, v: Cell) {
+        for i in self.data.iter_mut() {
+            *i = v;
+        }
+    }
 }
 
 impl Index<(u32, u32, u32)> for MapChunk {
@@ -55,22 +60,17 @@ impl IndexMut<(u32, u32, u32)> for MapChunk {
 #[derive(Clone)]
 pub struct Map {
     chunk: MapChunk,
-    sender: chan::Sender<MapChunk>,
-    receiver: chan::Receiver<MapChunk>,
 }
 
 impl Map {
     pub fn new(size: (u32, u32, u32), v: Cell) -> Self {
-        let (sender, receiver) = chan::async();
-
         Map {
             chunk: MapChunk::new((0, 0, 0), size, v),
-            sender: sender,
-            receiver: receiver,
         }
     }
 
     pub fn apply_updates(&mut self) {
+        /*
         let dst = &mut self.chunk;
         let recv = &mut self.receiver;
 
@@ -93,14 +93,22 @@ impl Map {
                                 }
                             }
                         }
+
+                        debug!("Changes applied: {:?}, {:?}", src.position, src.size);
                     }
                 },
             }
         }
+        */
     }
 
     pub fn update(&mut self, chunk: MapChunk) {
-        self.sender.send(chunk);
+        debug!("Sending changes: {:?}, {:?}", chunk.size, chunk.position);
+        //self.sender.send(chunk);
+    }
+
+    pub fn size(&self) -> (u32, u32, u32) {
+        self.chunk.size
     }
 }
 

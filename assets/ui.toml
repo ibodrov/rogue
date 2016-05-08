@@ -3,5 +3,6 @@ atlas="assets/atlas_ascii.toml"
 visible_tile_size=[8, 10]
 
 [map.tiles]
-dwarf = { tile = 1,  fg = [255, 100,   0, 255] }
-grass = { tile = 46, fg = [  0, 100,   0, 255] }
+dwarf = { tile = 1,   fg = [255, 100,   0, 255] }
+grass = { tile = 46,  fg = [  0, 100,   0, 255] }
+wall =  { tile = 178, fg = [255,   0,   0, 255] }
