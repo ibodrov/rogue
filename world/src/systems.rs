@@ -3,8 +3,6 @@ use specs;
 use components;
 use map;
 
-pub type TimeDelta = f64;
-
 pub enum PlayerCommand {
     MoveUp,
     MoveDown,
@@ -14,30 +12,28 @@ pub enum PlayerCommand {
 
 pub struct PlayerControlSystem {
     receiver: mpsc::Receiver<PlayerCommand>,
-    map: map::Map
 }
 
 impl PlayerControlSystem {
-    pub fn new(receiver: mpsc::Receiver<PlayerCommand>, map: map::Map) -> Self {
+    pub fn new(receiver: mpsc::Receiver<PlayerCommand>) -> Self {
         PlayerControlSystem {
             receiver: receiver,
-            map: map,
         }
     }
 }
 
-impl specs::System<TimeDelta> for PlayerControlSystem {
-    fn run(&mut self, arg: specs::RunArg, _: TimeDelta) {
+impl specs::System<super::WorldContext> for PlayerControlSystem {
+    fn run(&mut self, arg: specs::RunArg, ctx: super::WorldContext) {
         use specs::Join;
 
-        // w/a specs limitantion -- fetch components regardless of the queue's size
+        // w/a specs limitations, we must fetch components whether we need them or not
         let (mut pos, _) = arg.fetch(|w| (w.write::<components::Position>(), w.read::<components::PlayerControlled>()));
 
         match self.receiver.try_recv() {
             Ok(cmd) => {
-                let map = &mut self.map;
+                let map = ctx.map;
                 let (map_size_x, map_size_y, _) = map.size();
-                map.apply_updates();
+                let (map_size_x, map_size_y) = (50, 50);
 
                 for p in (&mut pos).iter() {
                     let mut x = p.x as i32;

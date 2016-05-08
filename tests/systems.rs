@@ -50,8 +50,8 @@ fn setup_map() -> map::Map {
     map::Map::new((10, 10, 10), 0)
 }
 
-fn move_and_check(planner: &mut MyPlanner, sender: &chan::Sender<systems::PlayerCommand>, cmd: systems::PlayerCommand, assert_pos: (u32, u32, u32)) {
-    sender.send(cmd);
+fn move_and_check(planner: &mut MyPlanner, sender: &mpsc::Sender<systems::PlayerCommand>, cmd: systems::PlayerCommand, assert_pos: (u32, u32, u32)) {
+    sender.send(cmd).unwrap();
     planner.dispatch(0.0);
     planner.wait();
     assert_position(planner, assert_pos);

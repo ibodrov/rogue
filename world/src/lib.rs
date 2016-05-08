@@ -18,8 +18,14 @@ pub use systems::PlayerCommand;
 
 pub type TimeDelta = f64;
 
+#[derive(Clone)]
+pub struct WorldContext {
+    time_delta: TimeDelta,
+    map: map::Map,
+}
+
 pub struct World {
-    planner: specs::Planner<TimeDelta>,
+    planner: specs::Planner<WorldContext>,
     map: map::Map,
     player_commands: mpsc::Sender<PlayerCommand>,
     last_tick: f64,
@@ -44,7 +50,7 @@ impl Default for World {
                 .build();
 
             let mut p = specs::Planner::new(w, 4);
-            p.add_system(systems::PlayerControlSystem::new(cmd_receiver, map.clone()), "player-control", 100);
+            p.add_system(systems::PlayerControlSystem::new(cmd_receiver), "player-control", 100);
 
             p
         };
@@ -61,7 +67,11 @@ impl Default for World {
 impl World {
     pub fn tick(&mut self) {
         let dt = time::precise_time_s() - self.last_tick;
-        self.planner.dispatch(dt);
+        let ctx = WorldContext {
+            time_delta: dt,
+            map: self.map.clone(),
+        };
+        self.planner.dispatch(ctx);
     }
 
     pub fn send_player_command(&mut self, cmd: PlayerCommand) {

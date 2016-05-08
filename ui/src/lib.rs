@@ -31,29 +31,26 @@ trait Renderable {
         where F: glium::backend::Facade, S: glium::Surface;
 }
 
-fn to_vec4(v: [u8; 4]) -> [f32; 4] {
-    [v[0] as f32 / 255.0, v[1] as f32 / 255.0, v[2] as f32 / 255.0, v[3] as f32 / 255.0]
-}
-
 fn randomize_map(map: &mut world::map::Map) {
     let nothing = 0;
     let wall = 1;
 
     let (mx, my, mz) = map.size();
-    let mut chunk = world::map::MapChunk::new((0, 0, 0), (mx, my, mz), nothing);
     let mut rng = rand::thread_rng();
+
+    map.fill(nothing);
 
     for z in 0..mz {
         // top and bottom wall
         for x in 0..mx {
-            chunk[(x, 0, z)] = wall;
-            chunk[(x, my - 1, z)] = wall;
+            map[(x, 0, z)] = wall;
+            map[(x, my - 1, z)] = wall;
         }
 
         // left and right wall
         for y in 0..my {
-            chunk[(0, y, z)] = wall;
-            chunk[(mx - 1, y, z)] = wall;
+            map[(0, y, z)] = wall;
+            map[(mx - 1, y, z)] = wall;
         }
 
         // random boxes
@@ -70,14 +67,11 @@ fn randomize_map(map: &mut world::map::Map) {
                         continue;
                     }
 
-                    chunk[(i, j, z)] = wall;
+                    map[(i, j, z)] = wall;
                 }
             }
         }
     }
-
-    map.update(chunk);
-    map.apply_updates();
 }
 
 pub fn start() {
