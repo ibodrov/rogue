@@ -1,4 +1,0 @@
-file="assets/tiles_ascii.png"
-tile_size=[8, 10]
-tile_count=[16, 16]
-color_mask=[255, 46, 250, 255]

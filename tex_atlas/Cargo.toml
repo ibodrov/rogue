@@ -6,7 +6,6 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 [dependencies]
 glium = "*"
 image = "*"
-toml = "*"
 log = "*"
 
 [dependencies.clippy]

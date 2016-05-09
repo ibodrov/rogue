@@ -19,6 +19,10 @@ version = "0.1.0"
 path = "../tex_atlas"
 version = "0.1.0"
 
+[dependencies.cfg]
+path = "../cfg"
+version = "0.1.0"
+
 [dependencies.clippy]
 version = "*"
 optional = true

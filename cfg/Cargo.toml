@@ -1,0 +1,9 @@
+[package]
+name = "cfg"
+version = "0.1.0"
+authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
+
+[dependencies]
+serde = "*"
+serde_json = "*"
+serde_macros = "*"

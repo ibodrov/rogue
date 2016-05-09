@@ -11,9 +11,10 @@ extern crate rand;
 #[macro_use]
 extern crate log;
 extern crate world;
+extern crate cfg;
 
 mod tile_map;
-mod cfg;
+//mod cfg;
 mod world_view;
 
 use rand::Rng;
@@ -86,19 +87,20 @@ pub fn start() {
         .build_glium()
         .unwrap();
 
-    let cfg = cfg::load(&display, "assets/ui.toml");
-    let tex_atlas = cfg.map_cfg().atlas();
+    let cfg = cfg::ui::load("assets/ui.json").unwrap();
+    let tex_atlas_cfg = cfg::assets::load_atlas(&cfg.map.atlas_path).unwrap();
+    let tex_atlas = tex_atlas::load(&display, &tex_atlas_cfg.path,
+                                    tex_atlas_cfg.tile_size, tex_atlas_cfg.tile_count,
+                                    tex_atlas_cfg.color_mask).unwrap();
     let visible_tile_size = {
-        if let Some(v) = cfg.map_cfg().visible_tile_size() {
+        if let Some(v) = cfg.map.visible_tile_size {
             v
         } else {
             tex_atlas.tile_size()
         }
     };
 
-    let dwarf_cfg = cfg.map_cfg().entities().get("dwarf").unwrap();
-    let grass_cfg = cfg.map_cfg().entities().get("grass").unwrap();
-    let wall_cfg = cfg.map_cfg().entities().get("wall").unwrap();
+    let dwarf_cfg = cfg.map.tiles.get("dwarf").unwrap();
 
     let map_size = (SCREEN_WIDTH / visible_tile_size.0, SCREEN_HEIGHT / visible_tile_size.1);
     let mut viewport = Viewport { position: (0, 0), size: (SCREEN_WIDTH, SCREEN_HEIGHT) };

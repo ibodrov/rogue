@@ -1,0 +1,12 @@
+{
+    "map": {
+        "atlas_path": "assets/atlas_ascii.json",
+        "tiles": {
+            "dwarf": {
+                "tile_n": 1,
+                "fg": [255, 100,   0, 255],
+                "bg": [255, 255, 255, 255]
+            }
+        }
+    }
+}

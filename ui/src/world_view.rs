@@ -7,7 +7,7 @@ fn to_vec4(v: [u8; 4]) -> [f32; 4] {
 }
 
 pub enum TileVariant {
-    Entity(cfg::MapEntityCfg),
+    Entity(cfg::ui::UiMapTileCfg),
     Simple(u8),
 }
 
@@ -27,8 +27,8 @@ pub fn update<F>(tile_map: &mut tile_map::TileMap,
             },
             TileVariant::Entity(cfg) => {
                 tile_map.set_tile(x, y, tile_map::Tile {
-                    n: cfg.tile(),
-                    fg_color: to_vec4(cfg.fg_color()),
+                    n: cfg.tile_n as u8, // FIXME get rid of casting
+                    fg_color: to_vec4(cfg.fg),
                     .. Default::default()
                 });
             },
