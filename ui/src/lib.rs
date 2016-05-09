@@ -142,7 +142,7 @@ pub fn start() {
                                 world.send_player_command(world::PlayerCommand::MoveRight);
                             },
                             VirtualKeyCode::R => {
-                                randomize_map(world.map_mut());
+                                randomize_map(&mut *world.map_mut().lock().unwrap());
                             },
                             VirtualKeyCode::B => {
                                 let mut rng = rand::thread_rng();

@@ -17,15 +17,16 @@ use std::sync::{Arc, Mutex};
 pub use systems::player_control::PlayerCommand;
 
 pub type TimeDelta = f64;
+pub type MapHolder = Arc<Mutex<map::Map>>;
 
 #[derive(Clone)]
 pub struct WorldContext {
     time_delta: TimeDelta,
-    map: map::Map,
+    map: MapHolder,
 }
 
 impl WorldContext {
-    pub fn new(time_delta: f64, map: map::Map) -> Self {
+    pub fn new(time_delta: f64, map: MapHolder) -> Self {
         WorldContext {
             time_delta: time_delta,
             map: map,
@@ -35,7 +36,7 @@ impl WorldContext {
 
 pub struct World {
     planner: specs::Planner<WorldContext>,
-    map: map::Map,
+    map: MapHolder,
     player_commands: mpsc::Sender<PlayerCommand>,
     last_render: systems::render::RenderedViewHolder,
     render_view: systems::render::ViewHolder,
@@ -44,8 +45,9 @@ pub struct World {
 
 impl Default for World {
     fn default() -> Self {
+        let map = Arc::new(Mutex::new(map::load_from_csv("assets/test_map.csv", (50, 50, 1))));
+        let checker = systems::player_control::MapObstactChecker::new(map.clone());
 
-        let map = map::load_from_csv("assets/test_map.csv", (50, 50, 1));
         let (cmd_sender, cmd_receiver) = mpsc::channel();
 
         let last_render_holder = Arc::new(Mutex::new(None));
@@ -65,7 +67,7 @@ impl Default for World {
                 .build();
 
             let mut p = specs::Planner::new(w, 4);
-            p.add_system(systems::player_control::PlayerControlSystem::new(cmd_receiver), "player-control", 100);
+            p.add_system(systems::player_control::PlayerControlSystem::new(cmd_receiver, checker), "player-control", 100);
             p.add_system(systems::render::RenderingSystem::new(last_render_holder.clone(),
                                                                render_view_holder.clone()), "rendering", 200);
 
@@ -86,10 +88,7 @@ impl Default for World {
 impl World {
     pub fn tick(&mut self) {
         let dt = time::precise_time_s() - self.last_tick;
-        let ctx = WorldContext {
-            time_delta: dt,
-            map: self.map.clone(),
-        };
+        let ctx = WorldContext::new(dt, self.map.clone());
         self.planner.dispatch(ctx);
     }
 
@@ -108,11 +107,11 @@ impl World {
         &self.render_view
     }
 
-    pub fn map(&self) -> &map::Map {
+    pub fn map(&self) -> &MapHolder {
         &self.map
     }
 
-    pub fn map_mut(&mut self) -> &mut map::Map {
+    pub fn map_mut(&mut self) -> &mut MapHolder {
         &mut self.map
     }
 }

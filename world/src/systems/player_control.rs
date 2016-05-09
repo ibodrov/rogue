@@ -1,5 +1,6 @@
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 use specs;
+use map;
 use ::WorldContext;
 
 pub enum PlayerCommand {
@@ -9,20 +10,64 @@ pub enum PlayerCommand {
     MoveRight,
 }
 
-pub struct PlayerControlSystem {
-    receiver: mpsc::Receiver<PlayerCommand>,
+pub trait ObstacleChecker: Send {
+    fn check(&self, x: i32, y: i32, z: i32) -> bool;
 }
 
-impl PlayerControlSystem {
-    pub fn new(receiver: mpsc::Receiver<PlayerCommand>) -> Self {
-        PlayerControlSystem {
-            receiver: receiver,
+pub struct MapObstactChecker {
+    map: Arc<Mutex<map::Map>>,
+}
+
+impl MapObstactChecker {
+    pub fn new(map: Arc<Mutex<map::Map>>) -> Self {
+        MapObstactChecker {
+            map: map
         }
     }
 }
 
-impl specs::System<WorldContext> for PlayerControlSystem {
-    fn run(&mut self, arg: specs::RunArg, ctx: WorldContext) {
+impl ObstacleChecker for MapObstactChecker {
+    fn check(&self, x: i32, y: i32, z: i32) -> bool {
+        let m = &*self.map.lock().unwrap();
+        let (msx, msy, msz) = m.size();
+
+        if x < 0 || x >= msx as i32 {
+            return false;
+        }
+
+        if y < 0 || y >= msy as i32 {
+            return false;
+        }
+
+        if z < 0 || z >= msz as i32 {
+            return false;
+        }
+
+        let x = x as u32;
+        let y = y as u32;
+        let z = z as u32;
+
+        let t = m[(x, y, z)];
+        !(t == 201 || t == 205 || t == 187 || t == 186 || t == 199 || t == 217 || t == 179)
+    }
+}
+
+pub struct PlayerControlSystem<C: ObstacleChecker> {
+    receiver: mpsc::Receiver<PlayerCommand>,
+    checker: C,
+}
+
+impl<C: ObstacleChecker> PlayerControlSystem<C> {
+    pub fn new(receiver: mpsc::Receiver<PlayerCommand>, checker: C) -> Self {
+        PlayerControlSystem {
+            receiver: receiver,
+            checker: checker,
+        }
+    }
+}
+
+impl<C: ObstacleChecker> specs::System<WorldContext> for PlayerControlSystem<C> {
+    fn run(&mut self, arg: specs::RunArg, _: WorldContext) {
         use specs::Join;
         use components::{Position, PlayerControlled};
 
@@ -30,12 +75,10 @@ impl specs::System<WorldContext> for PlayerControlSystem {
 
         match self.receiver.try_recv() {
             Ok(cmd) => {
-                let map = ctx.map;
-                let (map_size_x, map_size_y, _) = map.size();
-
                 for p in (&mut pos).iter() {
                     let mut x = p.x as i32;
                     let mut y = p.y as i32;
+                    let z = p.z as i32;
 
                     match cmd {
                         PlayerCommand::MoveUp => y -= 1,
@@ -44,21 +87,12 @@ impl specs::System<WorldContext> for PlayerControlSystem {
                         PlayerCommand::MoveRight => x += 1,
                     }
 
-                    if x < 0 || x >= map_size_x as i32 {
-                        continue;
-                    }
-
-                    if y < 0 || y >= map_size_y as i32 {
+                    if !self.checker.check(x, y, z) {
                         continue;
                     }
 
                     let x = x as u32;
                     let y = y as u32;
-
-                    let t = map[(x, y, p.z)];
-                    if t == 1 {
-                        continue;
-                    }
 
                     p.x = x;
                     p.y = y;

@@ -65,7 +65,7 @@ impl specs::System<WorldContext> for RenderingSystem {
         let view = &self.view.lock().unwrap();
 
         let (mut tiles, position, size) = {
-            let map = &ctx.map;
+            let map = &ctx.map.lock().unwrap();
             let (map_size_x, map_size_y, map_size_z) = map.size();
 
             let (start_x, start_y, start_z) = view.position;
