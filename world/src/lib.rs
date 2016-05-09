@@ -14,7 +14,7 @@ pub mod systems;
 
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
-pub use systems::PlayerCommand;
+pub use systems::player_control::PlayerCommand;
 
 pub type TimeDelta = f64;
 
@@ -37,8 +37,8 @@ pub struct World {
     planner: specs::Planner<WorldContext>,
     map: map::Map,
     player_commands: mpsc::Sender<PlayerCommand>,
-    last_render: systems::RenderedViewHolder,
-    render_view: systems::ViewHolder,
+    last_render: systems::render::RenderedViewHolder,
+    render_view: systems::render::ViewHolder,
     last_tick: f64,
 }
 
@@ -49,7 +49,7 @@ impl Default for World {
         let (cmd_sender, cmd_receiver) = mpsc::channel();
 
         let last_render_holder = Arc::new(Mutex::new(None));
-        let render_view_holder = Arc::new(Mutex::new(systems::View::default()));
+        let render_view_holder = Arc::new(Mutex::new(systems::render::View::default()));
 
         let planner = {
             let mut w = specs::World::new();
@@ -65,9 +65,9 @@ impl Default for World {
                 .build();
 
             let mut p = specs::Planner::new(w, 4);
-            p.add_system(systems::PlayerControlSystem::new(cmd_receiver), "player-control", 100);
-            p.add_system(systems::RenderingSystem::new(last_render_holder.clone(),
-                                                       render_view_holder.clone()), "rendering", 200);
+            p.add_system(systems::player_control::PlayerControlSystem::new(cmd_receiver), "player-control", 100);
+            p.add_system(systems::render::RenderingSystem::new(last_render_holder.clone(),
+                                                               render_view_holder.clone()), "rendering", 200);
 
             p
         };
@@ -100,11 +100,11 @@ impl World {
         }
     }
 
-    pub fn last_render(&self) -> &systems::RenderedViewHolder {
+    pub fn last_render(&self) -> &systems::render::RenderedViewHolder {
         &self.last_render
     }
 
-    pub fn render_view(&self) -> &systems::ViewHolder {
+    pub fn render_view(&self) -> &systems::render::ViewHolder {
         &self.render_view
     }
 

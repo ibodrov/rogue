@@ -12,7 +12,7 @@ pub enum TileVariant {
 }
 
 pub fn update<F>(tile_map: &mut tile_map::TileMap,
-                 rendered_view: &world::systems::RenderedView,
+                 rendered_view: &world::systems::render::RenderedView,
                  converter: F)
     where F: Fn(&world::tile::Tile) -> TileVariant {
 
