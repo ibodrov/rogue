@@ -22,7 +22,7 @@ fn load<T: serde::Deserialize>(path: &str) -> Result<T, CfgError> {
 }
 
 pub mod assets {
-    #[derive(Serialize, Deserialize)]
+    #[derive(Deserialize)]
     pub struct TextureAtlasCfg {
         pub path: String,
         pub tile_size: (u32, u32),
@@ -38,7 +38,7 @@ pub mod assets {
 pub mod ui {
     use std::collections::HashMap;
 
-    #[derive(Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
+    #[derive(Clone, Copy, Eq, PartialEq, Hash, Deserialize)]
     pub struct UiMapTileCfg {
         pub tile_n: u32,
         pub fg: [u8; 4],
@@ -56,7 +56,7 @@ pub mod ui {
         }
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Deserialize)]
     pub struct UiMapCfg {
         pub atlas_path: String,
         #[serde(skip_serializing_if="Option::is_none")]
@@ -64,7 +64,7 @@ pub mod ui {
         pub tiles: HashMap<String, UiMapTileCfg>,
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Deserialize)]
     pub struct UiCfg {
         pub map: UiMapCfg,
     }

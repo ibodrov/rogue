@@ -14,7 +14,6 @@ extern crate world;
 extern crate cfg;
 
 mod tile_map;
-//mod cfg;
 mod world_view;
 
 use rand::Rng;
@@ -75,12 +74,26 @@ fn randomize_map(map: &mut world::map::Map) {
     }
 }
 
+pub fn put_str(map: &mut tile_map::TileMap, x: u32, y: u32, s: &[u8]) {
+    let (mw, _) = map.size();
+    for i in 0..s.len() {
+        let _x = i as u32 + x;
+        if _x >= mw {
+            break;
+        }
+
+        map.set_tile(_x, y, tile_map::Tile {
+            n: s[i],
+            .. Default::default()
+        });
+    }
+}
+
 pub fn start() {
     use glium::{DisplayBuild, Surface};
     use glium::glutin::{Event, VirtualKeyCode, ElementState};
 
     let mut world = world::World::default();
-    //randomize_map(world.map_mut());
 
     let display = glium::glutin::WindowBuilder::new()
         .with_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -130,6 +143,13 @@ pub fn start() {
                             },
                             VirtualKeyCode::R => {
                                 randomize_map(world.map_mut());
+                            },
+                            VirtualKeyCode::B => {
+                                let mut rng = rand::thread_rng();
+                                let (mw, mh) = tile_map.size();
+                                let x = rng.gen_range(0, mw);
+                                let y = rng.gen_range(0, mh);
+                                put_str(&mut tile_map, x, y, "Hello!".as_bytes());
                             },
                             _ => (),
                         }

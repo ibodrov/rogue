@@ -1,6 +1,7 @@
 {
     "map": {
         "atlas_path": "assets/atlas_ascii.json",
+        "visible_tile_size": [16, 24],
         "tiles": {
             "dwarf": {
                 "tile_n": 1,
