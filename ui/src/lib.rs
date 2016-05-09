@@ -164,27 +164,29 @@ pub fn start() {
             }
         }
 
-        {
-            let view = world::render::View {
-                size: (map_size.0, map_size.1, 1),
-                .. Default::default()
-            };
-            let rendered_view = world::render::render(&mut world, &view);
-            let converter = move |t: &world::tile::Tile| {
-                if let Some(ref fx) = t.effects {
-                    for e in fx {
-                        if let world::tile::Effect::Marked(_) = *e {
-                            return world_view::TileVariant::Entity(*dwarf_cfg);
-                        }
-                    }
-                }
+        world.tick();
 
-                world_view::TileVariant::Simple(t.ground)
-            };
-            world_view::update(&mut tile_map, &rendered_view, converter);
+        {
+            let view = &mut world.render_view().lock().unwrap();
+            view.size = (map_size.0, map_size.1, 1);
         }
 
-        world.tick();
+        {
+            if let Some(ref rendered_view) = *world.last_render().lock().unwrap() {
+                let converter = move |t: &world::tile::Tile| {
+                    if let Some(ref fx) = t.effects {
+                        for e in fx {
+                            if let world::tile::Effect::Marked(_) = *e {
+                                return world_view::TileVariant::Entity(*dwarf_cfg);
+                            }
+                        }
+                    }
+
+                    world_view::TileVariant::Simple(t.ground)
+                };
+                world_view::update(&mut tile_map, rendered_view, converter);
+            }
+        }
 
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);

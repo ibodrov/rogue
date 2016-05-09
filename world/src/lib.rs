@@ -11,9 +11,9 @@ pub mod map;
 pub mod tile;
 pub mod components;
 pub mod systems;
-pub mod render;
 
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 pub use systems::PlayerCommand;
 
 pub type TimeDelta = f64;
@@ -37,14 +37,19 @@ pub struct World {
     planner: specs::Planner<WorldContext>,
     map: map::Map,
     player_commands: mpsc::Sender<PlayerCommand>,
+    last_render: systems::RenderedViewHolder,
+    render_view: systems::ViewHolder,
     last_tick: f64,
 }
 
 impl Default for World {
     fn default() -> Self {
-        //let map = map::Map::new((50, 50, 3), 0);
+
         let map = map::load_from_csv("assets/test_map.csv", (50, 50, 1));
         let (cmd_sender, cmd_receiver) = mpsc::channel();
+
+        let last_render_holder = Arc::new(Mutex::new(None));
+        let render_view_holder = Arc::new(Mutex::new(systems::View::default()));
 
         let planner = {
             let mut w = specs::World::new();
@@ -61,6 +66,8 @@ impl Default for World {
 
             let mut p = specs::Planner::new(w, 4);
             p.add_system(systems::PlayerControlSystem::new(cmd_receiver), "player-control", 100);
+            p.add_system(systems::RenderingSystem::new(last_render_holder.clone(),
+                                                       render_view_holder.clone()), "rendering", 200);
 
             p
         };
@@ -68,6 +75,8 @@ impl Default for World {
         World {
             map: map,
             player_commands: cmd_sender,
+            last_render: last_render_holder,
+            render_view: render_view_holder,
             planner: planner,
             last_tick: time::precise_time_s(),
         }
@@ -89,6 +98,14 @@ impl World {
             Ok(_) => (),
             Err(e) => panic!("Unhandled error while sending player commands: {:?}", e),
         }
+    }
+
+    pub fn last_render(&self) -> &systems::RenderedViewHolder {
+        &self.last_render
+    }
+
+    pub fn render_view(&self) -> &systems::ViewHolder {
+        &self.render_view
     }
 
     pub fn map(&self) -> &map::Map {
