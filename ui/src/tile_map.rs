@@ -82,8 +82,8 @@ impl<'a> TileMap<'a> {
         let cnt = size.0 * size.1;
         let tiles = (0..cnt).map(|_| Default::default()).collect();
 
-        let vertices = glium::VertexBuffer::new(display, &QUAD).unwrap();
-        let indices = glium::IndexBuffer::new(display, PrimitiveType::TrianglesList, &QUAD_INDICES).unwrap();
+        let vertices = glium::VertexBuffer::immutable(display, &QUAD).unwrap();
+        let indices = glium::IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &QUAD_INDICES).unwrap();
 
         let vertex_shader = read_string("assets/tile_map.vert");
         let fragment_shader = read_string("assets/tile_map.frag");
