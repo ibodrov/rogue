@@ -72,14 +72,14 @@ fn randomize_map(map: &mut world::map::Map) {
 
 pub fn put_str(map: &mut tile_map::TileMap, x: u32, y: u32, s: &[u8]) {
     let (mw, _) = map.size();
-    for i in 0..s.len() {
-        let _x = i as u32 + x;
-        if _x >= mw {
+    for (i, item) in s.iter().enumerate() {
+        let new_x = i as u32 + x;
+        if new_x >= mw {
             break;
         }
 
-        map.set_tile(_x, y, tile_map::Tile {
-            n: s[i],
+        map.set_tile(new_x, y, tile_map::Tile {
+            n: *item,
             .. Default::default()
         });
     }
@@ -145,7 +145,7 @@ pub fn start() {
                                 let (mw, mh) = tile_map.size();
                                 let x = rng.gen_range(0, mw);
                                 let y = rng.gen_range(0, mh);
-                                put_str(&mut tile_map, x, y, "Hello!".as_bytes());
+                                put_str(&mut tile_map, x, y, b"Hello!");
                             },
                             _ => (),
                         }
