@@ -39,6 +39,8 @@ pub struct TextureAtlas {
     texture: Texture2d,
     tile_size: (u32, u32),
     tile_count: (u32, u32),
+    tex_ratio: [f32; 2],
+    tex_coords: Vec<[f32; 2]>,
 }
 
 impl TextureAtlas {
@@ -59,9 +61,12 @@ impl TextureAtlas {
         self.tile_count
     }
 
-    pub fn ratio(&self) -> [f32; 2] {
-        let (rows, cols) = self.tile_count();
-        [1.0 / rows as f32, 1.0 / cols as f32]
+    pub fn tex_ratio(&self) -> [f32; 2] {
+        self.tex_ratio
+    }
+
+    pub fn tex_coords(&self) -> &Vec<[f32; 2]> {
+        &self.tex_coords
     }
 }
 
@@ -99,9 +104,20 @@ pub fn load<F: Facade>(display: &F,
     debug!("texture atlas is created: [texture: {:?}, tile_size: {:?}, tile_count: {:?}, color_mask: {:?}]",
            image_file, tile_size, tile_count, color_mask);
 
+    let (cols, rows) = tile_count;
+    let tex_ratio = [1.0 / cols as f32, 1.0 / rows as f32];
+
     Ok(TextureAtlas {
         texture: tex,
         tile_size: tile_size,
         tile_count: tile_count,
+        tex_ratio: tex_ratio,
+        tex_coords: {
+            (0..cols*rows).map(|i| {
+                let tx = (i % cols) as f32 * tex_ratio[0];
+                let ty = (i / cols) as f32 * tex_ratio[1];
+                [tx, ty]
+            }).collect()
+        },
     })
 }
