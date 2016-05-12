@@ -54,6 +54,7 @@ pub struct TileMap<'a> {
 
     /// state of the map
     tiles: Vec<Tile>,
+    coords: Vec<[u32; 2]>,
 
     vertices: glium::VertexBuffer<Vertex>,
     indices: glium::IndexBuffer<u16>,
@@ -82,6 +83,18 @@ impl<'a> TileMap<'a> {
         let cnt = size.0 * size.1;
         let tiles = (0..cnt).map(|_| Default::default()).collect();
 
+        let coords = {
+            // cache all tile locations
+            let (mw, _) = size;
+            let (tw, th) = visible_tile_size;
+
+            (0..cnt).map(|i| {
+                let x = (i % mw) * tw;
+                let y = (i / mw) * th;
+                [x, y]
+            }).collect()
+        };
+
         let vertices = glium::VertexBuffer::immutable(display, &QUAD).unwrap();
         let indices = glium::IndexBuffer::immutable(display, PrimitiveType::TrianglesList, &QUAD_INDICES).unwrap();
 
@@ -93,6 +106,7 @@ impl<'a> TileMap<'a> {
             size: size,
             visible_tile_size: visible_tile_size,
             tiles: tiles,
+            coords: coords,
             vertices: vertices,
             indices: indices,
             program: program,
@@ -112,28 +126,25 @@ impl<'a> TileMap<'a> {
     fn create_instances<F>(&self, display: &F) -> glium::VertexBuffer<Instance>
         where F: glium::backend::Facade {
 
-        let (mw, _) = self.size;
-        let (tw, th) = self.visible_tile_size;
-        let (ac, _) = self.tex_atlas.tile_count();
-        let r = self.tex_atlas.ratio();
+        let tex_coords = self.tex_atlas.tex_coords();
 
-        let data = self.tiles.iter().zip(0..).map(|(t, i)| {
-            // TODO remove division?
-            let x = (i % mw) * tw;
-            let y = (i / mw) * th;
+        let data = self.tiles.iter()
+            .zip(self.coords.iter())
+            .map(|(tile, c)| {
+                let (x, y) = (c[0], c[1]);
 
-            let tx = (t.n as u32 % ac) as f32 * r[0];
-            let ty = (t.n as u32 / ac) as f32 * r[1];
+                let txc = tex_coords[tile.n as usize];
+                let (tx, ty) = (txc[0], txc[1]);
 
-            let fg = if t.visible {
-                t.fg_color
-            } else {
-                [0.0, 0.0, 0.0, 0.0]
-            };
+                let fg = if tile.visible {
+                    tile.fg_color
+                } else {
+                    [0.0, 0.0, 0.0, 0.0]
+                };
 
-            Instance { screen_position: [x, y], tex_offset: [tx, ty],
-                       fg_color: fg, bg_color: t.bg_color }
-        }).collect::<Vec<Instance>>();
+                Instance { screen_position: [x, y], tex_offset: [tx, ty],
+                           fg_color: fg, bg_color: tile.bg_color }
+            }).collect::<Vec<Instance>>();
 
         glium::VertexBuffer::dynamic(display, &data).unwrap()
     }
@@ -153,7 +164,7 @@ impl<'a> super::Renderable for TileMap<'a> {
                 .wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
                 .minify_filter(glium::uniforms::MinifySamplerFilter::Nearest)
                 .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest),
-            tex_ratio: self.tex_atlas.ratio(),
+            tex_ratio: self.tex_atlas.tex_ratio(),
         };
 
         let instances = self.create_instances(display);
