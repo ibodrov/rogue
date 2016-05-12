@@ -22,11 +22,3 @@ version = "0.1.0"
 [dependencies.cfg]
 path = "../cfg"
 version = "0.1.0"
-
-[dependencies.clippy]
-version = "*"
-optional = true
-
-[features]
-default = []
-dev = ["clippy"]
