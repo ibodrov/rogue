@@ -7,11 +7,3 @@ authors = ["Ivan Bodrov <ibodrov@gmail.com>"]
 glium = "*"
 image = "*"
 log = "*"
-
-[dependencies.clippy]
-version = "*"
-optional = true
-
-[features]
-default = []
-dev = ["clippy"]
